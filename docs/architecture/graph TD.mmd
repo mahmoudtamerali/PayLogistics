@@ -1,0 +1,30 @@
+graph TD
+    classDef dev fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef security fill:#ff9999,stroke:#333,stroke-width:2px;
+    classDef success fill:#99ff99,stroke:#333,stroke-width:2px;
+    classDef aws fill:#ff9900,stroke:#333,stroke-width:2px;
+
+    A[Developer Push Code / PR] -->|Trigger| B(GitHub Actions Workflow)
+    
+    subgraph Phase_1_Security_Gates [Phase 1 Security Gates and ECR Push]
+        B --> C{1. Gitleaks Scan}
+        C -->|Secrets Found| X[Build Failed / Reject PR]:::security
+        C -->|Clean| D{2. Semgrep SAST}
+        
+        D -->|Vulnerabilities Found| X
+        D -->|Clean| E{3. Trivy SCA Scan}
+        
+        E -->|Critical/High CVEs| X
+        E -->|Passed 100%| F[All Security Gates Passed]:::success
+        
+        F --> G[AWS Authentication via IAM / OIDC]:::aws
+        G --> H[Build Docker Image]
+        H --> I[Push Secure Image to Amazon ECR]:::aws
+    end
+
+    I --> J((Handoff to Member 4: ECS Deployment))
+
+    class A dev;
+    class X security;
+    class F success;
+    class G,I aws;
