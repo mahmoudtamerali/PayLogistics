@@ -50,4 +50,3 @@ PlayLogistics/
    - **SAST (Semgrep):** Analyzes source code for security flaws and injection vulnerabilities.
    - **SCA (Trivy):** Scans third-party dependencies for known CVEs.
 3. **AWS Authentication & Push:** If all checks pass successfully, the pipeline authenticates with AWS via secure IAM/OIDC roles, builds the Docker image, and pushes it securely to **Amazon ECR** ready for Member 4's ECS deployment.
-
