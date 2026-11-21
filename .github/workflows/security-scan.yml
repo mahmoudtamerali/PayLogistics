@@ -32,9 +32,6 @@ jobs:
           docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep:latest \
             semgrep scan --config auto --metrics=off --quiet || true
 
-      - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v0.2.3
-
       - name: Trivy on source files (dependencies and config, report only)
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace aquasec/trivy:latest \
