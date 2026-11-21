@@ -1,0 +1,4 @@
+-r requirements.txt
+pytest
+httpx==0.28.1
+moto[dynamodb]==5.2.5

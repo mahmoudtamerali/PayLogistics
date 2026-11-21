@@ -1,0 +1,34 @@
+# Local development only. Nothing here runs in AWS.
+# Start:  docker compose up --build
+# Try notes: see README section "Try the notes API by hand"
+# Check:  curl http://localhost:8080/health   and   curl http://localhost:8080/health/ready
+
+services:
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb"]
+    ports:
+      - "127.0.0.1:8000:8000"   # reachable from this computer only
+
+  records:
+    build: .
+    depends_on:
+      - dynamodb-local
+    # DynamoDB Local can take a few seconds to start; retry instead of exiting.
+    restart: on-failure
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      AWS_REGION: eu-west-1
+      DYNAMODB_ENDPOINT: http://dynamodb-local:8000
+      CREATE_TABLE_ON_START: "true"     # local only
+      SEED_LOCAL_DATA: "true"           # local only: doctor doc-demo assigned to patient pat-demo
+      INTERNAL_TOKEN: local-dev-token   # local only; in AWS it comes from Secrets Manager
+    # Same restrictions ECS will apply in T55, so problems show up now:
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true

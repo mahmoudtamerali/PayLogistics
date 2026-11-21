@@ -1,0 +1,13 @@
+# Decision: Phase 1 container and monitoring code (T22, T60, T62)
+
+Date: 2026-11-10. Owner: Container. Status: code only, nothing deployed.
+
+- **One switch for cost.** The records service and the scanner modules take `deploy` (default false). While false, no load balancer and no ECS service exist, so nothing bills by the hour. Tables, queue, buckets, roles, secret container, log groups, task definitions and alarms are free or cost cents. Phase 3 tests set `deploy = true` for minutes and destroy straight after.
+- **Fargate only**, X86_64, read-only root filesystem, user 10001, all capabilities dropped. Images must be built with `--platform linux/amd64`.
+- **Task roles are exact.** Records: put/get/query on notes, put only on audit, get only on assignments. Scanner: read and delete on uploads, put on clean and quarantine, receive/delete on its queue.
+- **Secrets:** the internal token is an empty Secrets Manager secret created by Terraform; its value is set with `put-secret-value` so it never enters the state file. Startup needs a Secrets Manager interface endpoint in Phase 3 (`extra_interface_endpoint_services = ["secretsmanager"]` in the network module).
+- **Scanner signatures:** baked into the image, rebuilt weekly (option A in `scanner/README.md`). Needs a scheduled CI job owned by DevSecOps.
+- **Custom metrics through logs (EMF)**, not PutMetricData, so no CloudWatch endpoint is needed. Alarms: malware found, scan failed, scan backlog, dead-letter queue, audit write failed, denied-request spike, DynamoDB errors, memory, load balancer 5xx and unhealthy targets, WAF blocked requests (us-east-1).
+- **Log retention:** 30 days by default (`log_retention_days`). Compliance may change this.
+- **X-Ray tracing: built, off by default.** The records service has an optional tracing module (`app/tracing.py`, switched on only by `XRAY_ENABLED=true`) that records one segment per request and one subsegment per DynamoDB call. It records the route template, status and operation/table names only, never patient or caller identifiers, tokens or bodies, and a tracing failure never fails a request. Infrastructure side: `xray = true` in the example adds a non-essential daemon sidecar (UDP 2000 on localhost), `xray:*` write permissions on the task role, and the `xray` interface endpoint (hourly cost, so test sessions only). The daemon image must be mirrored into our private registry first with `scripts/mirror_xray_daemon.sh` (it runs the image gate before pushing). Tested offline (10 tests); the daemon container itself has not run on AWS yet.
+- **Encryption keys:** AWS-owned or S3-managed keys by default (free). A customer-managed key can be passed with `kms_key_arn`; the queue stays on SQS-managed encryption so S3 can notify it.

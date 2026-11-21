@@ -1,0 +1,44 @@
+# Source security scans (ported from the old ci-sec-pipeline.yml security-scan job, DevSecOps owns tuning).
+# Report-only for Semgrep and Trivy until the first run shows what they find; Gitleaks fails the build on a secret.
+# No AWS access, no secrets other than the automatic GITHUB_TOKEN, and nothing is pushed anywhere.
+name: security-scan
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Secrets, SAST and dependency scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # Gitleaks also checks history
+
+      - name: Gitleaks (secrets, fails on a finding)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Semgrep (SAST, report only)
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep:latest \
+            semgrep scan --config auto --metrics=off --quiet || true
+
+      - name: Trivy on source files (dependencies and Terraform, report only)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "0"

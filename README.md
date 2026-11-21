@@ -1,52 +1,33 @@
-# PayLogistics Platform 🚀
+# SecureCare: container and monitoring layer
 
-Welcome to the **PayLogistics** repository! This is an advanced, secure cloud-based shipping and e-commerce platform designed from the ground up to comply with strict regulatory and security standards such as **PCI-DSS** (for payment card data protection) and **GDPR** (for user data privacy).
+Records service and ClamAV file scanner on ECS Fargate (AWS eu-west-1), plus the network, monitoring and incident automation around them.
 
----
-
-## 🏗️ The Business Scenario
-
-PayLogistics provides digital shipping and payment services through web and mobile applications leveraging a Microservices architecture and Serverless APIs. The primary objective is to build and secure a complete software development and deployment lifecycle using **Security by Design / DevSecOps** principles without slowing down developer velocity.
-
----
-
-## 👥 Executive Team Task Distribution
-
-| Member       | Job Role                               | Core Responsibilities                                                                                                                                                                     |
-| :----------- | :------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Member 1** | **DevSecOps Pipeline Engineer**        | • Configure GitHub Actions / CI-CD pipelines.<br>• Integrate automated security scanning tools (Gitleaks, Semgrep, Trivy).<br>• Automate secure builds and push artifacts to **AWS ECR**. |
-| **Member 2** | **Identity & API Security Specialist** | • Set up Amazon Cognito User Pools/App Clients for authentication (JWT Tokens).<br>• Configure API Gateway and secure AWS Lambda functions with Least Privilege.                          |
-| **Member 3** | **Web Security & DAST Specialist**     | • Build and configure **AWS WAF** rules against OWASP Top 10 vulnerabilities.<br>• Implement Rate Limiting and manage DAST security testing.                                              |
-| **Member 4** | **Container Security Engineer**        | • Secure Dockerfiles and optimize container image sizes.<br>• Deploy and run containerized microservices within **Amazon ECS Fargate** inside private subnets.                            |
-| **Member 5** | **IaC & Disaster Recovery Lead**       | • Provision the complete cloud infrastructure using **Terraform**.<br>• Set up automated encrypted backups via AWS Backup and Multi-AZ resilience.                                        |
-| **Member 6** | **Governance & Automated IR Lead**     | • Enable continuous compliance automation using AWS Config Conformance Packs (PCI-DSS & GDPR).<br>• Automate incident response workflows (Automated IR).                                  |
-
----
-
-## 🗺️ Repository Structure
-
-```text
-PlayLogistics/
-├── .github/
-│   └── workflows/
-│       └── ci-sec-pipeline.yml   # CI/CD security scanning & ECR push pipeline
-├── docs/
-│   ├── architecture/             # Architectural diagrams and workflows
-│   ├── security/                 # Compliance reports and security policies
-│   └── api/                      # API documentation and endpoints
-├── src/                          # Application code and microservices
-├── terraform/                    # Infrastructure as Code (IaC) files
-├── docker/                       # Container definitions and Dockerfiles
-└── README.md
+```
+infra/             Terraform modules, the applied stack (examples/phase1-plan-only), scripts, tests,
+                   and evidence/ (Gate 3 results and screenshots; kept out of git, contains account details)
+records-service/   FastAPI records service (port 8080, non-root, read-only filesystem)
+scanner/           ClamAV worker: S3 -> SQS -> scan -> clean / quarantine
+docs/              Exported project documents and the deck
 ```
 
----
+## Cost rule
+The base stack stays on (a few dollars a month). Anything that bills by the hour only exists while `deploy = true`.
+Run a test session, then set it back and destroy:
 
-## 🔄 CI/CD Security Workflow (Member 1 Focus)
+```
+cd infra/examples/phase1-plan-only
+terraform apply -var deploy=true -var interface_endpoints=true
+cd ../.. && bash scripts/gate3_runner.sh   # checks 1-7, evidence goes to infra/evidence/gate3
+cd examples/phase1-plan-only
+terraform apply -var deploy=false -var interface_endpoints=false
+```
 
-1. **Developer Push:** Code is pushed or a Pull Request is opened on GitHub.
-2. **Security Gates:** Automated checks run simultaneously:
-   - **Secrets Scanning (Gitleaks):** Detects accidentally leaked API keys or credentials.
-   - **SAST (Semgrep):** Analyzes source code for security flaws and injection vulnerabilities.
-   - **SCA (Trivy):** Scans third-party dependencies for known CVEs.
-3. **AWS Authentication & Push:** If all checks pass successfully, the pipeline authenticates with AWS via secure IAM/OIDC roles, builds the Docker image, and pushes it securely to **Amazon ECR** ready for Member 4's ECS deployment.
+## Tests (offline, no AWS)
+```
+cd infra && python -m pytest tests
+cd records-service && python -m pytest
+cd scanner && python -m pytest
+```
+
+## Local files that are not in git
+`terraform.tfstate`, `terraform.tfvars`, `gate3.env`, `infra/evidence/`. Keep a copy of the state somewhere off this computer.

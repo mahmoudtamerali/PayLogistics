@@ -1,0 +1,20 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.plan
+# secrets / local config
+gate3.env
+# test artefacts and local tooling
+evidence/
+eicar*
+__pycache__/
+.venv/
+sc-venv/
+build/
+.DS_Store
+CLAUDE.md
+docs/live-session-plan.md
+*.tfplan
+_archive-*/
