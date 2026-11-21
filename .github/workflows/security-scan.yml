@@ -32,15 +32,16 @@ jobs:
           docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep:latest \
             semgrep scan --config auto --metrics=off --quiet || true
 
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.3
+
       - name: Trivy on source files (dependencies and config, report only)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          format: table
-          severity: CRITICAL,HIGH
-          ignore-unfixed: true
-          exit-code: "0"
+        run: |
+          trivy fs . \
+            --format table \
+            --severity CRITICAL,HIGH \
+            --ignore-unfixed \
+            --exit-code 0
 
       - name: Checkov (Terraform IaC scan, report only)
         run: |
