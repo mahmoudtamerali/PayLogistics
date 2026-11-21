@@ -37,7 +37,8 @@ jobs:
 
       - name: Trivy on source files (dependencies and config, report only)
         run: |
-          trivy fs . \
+          docker run --rm -v "$PWD:/workspace" -w /workspace aquasec/trivy:latest \
+            fs . \
             --format table \
             --severity CRITICAL,HIGH \
             --ignore-unfixed \
