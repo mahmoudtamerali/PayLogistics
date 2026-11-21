@@ -27,6 +27,14 @@ jobs:
           docker build --pull --no-cache --platform linux/amd64 \
             -t securecare-scanner:candidate scanner
 
+      - name: Install Trivy CLI
+        run: |
+          CID=$(docker create aquasec/trivy:latest)
+          docker cp "$CID:/usr/local/bin/trivy" /usr/local/bin/trivy
+          docker rm "$CID"
+          chmod +x /usr/local/bin/trivy
+          trivy --version
+
       - name: Image gate (blocks HIGH/CRITICAL fixable findings)
         run: |
           mkdir -p evidence
@@ -34,12 +42,6 @@ jobs:
           if [ -f infra/scripts/image-accept.txt ]; then
             ACCEPT="--accept-file infra/scripts/image-accept.txt"
           fi
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "$PWD:/workspace" \
-            -w /workspace \
-            aquasec/trivy:latest \
-            image --severity HIGH,CRITICAL --ignore-unfixed securecare-scanner:candidate
           python3 infra/scripts/image_gate.py \
             --image securecare-scanner:candidate \
             --out evidence/image-gate-scanner.txt $ACCEPT

@@ -31,6 +31,14 @@ jobs:
       - name: Build
         run: docker build --platform linux/amd64 -t securecare-${{ matrix.name }}:ci ${{ matrix.context }}
 
+      - name: Install Trivy CLI
+        run: |
+          CID=$(docker create aquasec/trivy:latest)
+          docker cp "$CID:/usr/local/bin/trivy" /usr/local/bin/trivy
+          docker rm "$CID"
+          chmod +x /usr/local/bin/trivy
+          trivy --version
+
       - name: Image gate
         run: |
           mkdir -p evidence
@@ -38,12 +46,6 @@ jobs:
           if [ -f infra/scripts/image-accept.txt ]; then
             ACCEPT="--accept-file infra/scripts/image-accept.txt"
           fi
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "$PWD:/workspace" \
-            -w /workspace \
-            aquasec/trivy:latest \
-            image --severity HIGH,CRITICAL --ignore-unfixed securecare-${{ matrix.name }}:ci
           python3 infra/scripts/image_gate.py \
             --image securecare-${{ matrix.name }}:ci \
             --out evidence/image-gate-${{ matrix.name }}.txt $ACCEPT
