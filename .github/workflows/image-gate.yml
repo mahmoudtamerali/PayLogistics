@@ -1,6 +1,6 @@
-# Image gate on every change to the service images (T57 / T59).
-# Builds both images and fails the pull request if either has a fixable HIGH/CRITICAL finding.
-# It never pushes anything and needs no AWS access.
+# Image gate on changes to service images (T57 / T59).
+# Builds both images and fails if either has a fixable HIGH/CRITICAL finding.
+# No AWS access required.
 name: image-gate
 
 on:
@@ -9,6 +9,7 @@ on:
       - "records-service/**"
       - "scanner/**"
       - "infra/scripts/image_gate.py"
+      - "infra/scripts/image-accept.txt"
   workflow_dispatch: {}
 
 permissions:
@@ -26,18 +27,26 @@ jobs:
           - { name: scanner, context: scanner }
     steps:
       - uses: actions/checkout@v4
+
       - name: Build
         run: docker build --platform linux/amd64 -t securecare-${{ matrix.name }}:ci ${{ matrix.context }}
+
       - uses: aquasecurity/setup-trivy@v0.2.3
+
       - name: Image gate
         run: |
           mkdir -p evidence
           ACCEPT=""
-          if [ -f infra/scripts/image-accept.txt ]; then ACCEPT="--accept-file infra/scripts/image-accept.txt"; fi
-          python3 infra/scripts/image_gate.py --image securecare-${{ matrix.name }}:ci \
+          if [ -f infra/scripts/image-accept.txt ]; then
+            ACCEPT="--accept-file infra/scripts/image-accept.txt"
+          fi
+          python3 infra/scripts/image_gate.py \
+            --image securecare-${{ matrix.name }}:ci \
             --out evidence/image-gate-${{ matrix.name }}.txt $ACCEPT
-      - uses: actions/upload-artifact@v4
+
+      - name: Keep gate report
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: image-gate-${{ matrix.name }}
           path: evidence/image-gate-${{ matrix.name }}.txt

@@ -1,32 +1,23 @@
 # Weekly rebuild of the scanner image (T57 / T59).
-#
-# Why: the scanner has no internet, so its virus signatures are baked into the image at build time.
-# An image older than a week means stale signatures. This job rebuilds from scratch, runs the image gate,
-# and only pushes if the gate passes. See infra/docs/decisions-scanner-risk.md for the accepted-risk decision.
-#
-# TEMPLATE FOR DEVSECOPS: the structure is ready, but these values are placeholders and must be set by
-# whoever owns the pipeline (repository settings -> Variables):
-#   AWS_ROLE_ARN   role GitHub may assume through OIDC (push to securecare-scanner only, no other rights)
-# Nothing here has run yet. After the first run, put the real workflow name and last successful run date
-# in the README (Gate 3 check 5 needs the job name and the rebuild date).
+# Rebuilds from scratch, runs image_gate.py, pushes to ECR via OIDC, and signs with cosign.
 name: scanner-weekly-rebuild
 
 on:
   schedule:
-    - cron: "0 5 * * 1"          # every Monday 05:00 UTC
+    - cron: "0 5 * * 1" # Every Monday 05:00 UTC
   workflow_dispatch: {}
 
 permissions:
   contents: read
-  id-token: write                # needed for OIDC; no long-lived AWS keys are stored anywhere
+  id-token: write # Required for AWS OIDC and cosign keyless signing
 
 env:
-  AWS_REGION: eu-west-1
+  AWS_REGION: us-east-1
   REPOSITORY: securecare-scanner
 
 jobs:
   rebuild:
-    runs-on: ubuntu-latest       # x86_64, same architecture as the Fargate task definition
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -39,24 +30,27 @@ jobs:
       - name: Install Trivy
         uses: aquasecurity/setup-trivy@v0.2.3
 
-      - name: Image gate (blocks only HIGH/CRITICAL findings that have a fix)
+      - name: Image gate (blocks HIGH/CRITICAL fixable findings)
         run: |
           mkdir -p evidence
           ACCEPT=""
-          if [ -f infra/scripts/image-accept.txt ]; then ACCEPT="--accept-file infra/scripts/image-accept.txt"; fi
-          python3 infra/scripts/image_gate.py --image securecare-scanner:candidate \
+          if [ -f infra/scripts/image-accept.txt ]; then
+            ACCEPT="--accept-file infra/scripts/image-accept.txt"
+          fi
+          python3 infra/scripts/image_gate.py \
+            --image securecare-scanner:candidate \
             --out evidence/image-gate-scanner.txt $ACCEPT
 
-      - name: Show the signature date baked into the image
+      - name: Show signature date baked into image
         run: docker run --rm --entrypoint cat securecare-scanner:candidate /etc/signatures-built-at
 
-      - name: Sign in to AWS (OIDC)
+      - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-to-assume: ${{ vars.AWS_BACKEND_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Push (only reached if the gate passed)
+      - name: Push to Amazon ECR
         id: push
         run: |
           REGISTRY="$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com"
@@ -66,19 +60,26 @@ jobs:
           docker tag securecare-scanner:candidate "$REGISTRY/${REPOSITORY}:latest"
           docker push "$REGISTRY/${REPOSITORY}:${DATE}"
           docker push "$REGISTRY/${REPOSITORY}:latest"
+          DIGEST="$(aws ecr describe-images \
+            --region "$AWS_REGION" \
+            --repository-name "$REPOSITORY" \
+            --image-ids imageTag="${DATE}" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text)"
+          echo "registry=$REGISTRY" >> "$GITHUB_OUTPUT"
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
 
-      # Optional, decision for DevSecOps (T60 follow-up): sign the pushed image so only signed images are deployed.
-      # - uses: sigstore/cosign-installer@v3
-      # - run: cosign sign --yes --key awskms:///<kms-key-arn> "$REGISTRY/${REPOSITORY}@<digest>"
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
 
-      - name: Keep the gate report
+      - name: Sign pushed image (OIDC keyless)
+        run: |
+          cosign sign --yes "${{ steps.push.outputs.registry }}/${{ env.REPOSITORY }}@${{ steps.push.outputs.digest }}"
+
+      - name: Keep gate report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: image-gate-scanner
           path: evidence/image-gate-scanner.txt
           if-no-files-found: ignore
-
-      # The running service does not pick up a new image by itself. A deploy step is NOT included on purpose:
-      # redeploying changes production behaviour and should be a separate, reviewed step
-      # (aws ecs update-service --force-new-deployment) once the team agrees how.
