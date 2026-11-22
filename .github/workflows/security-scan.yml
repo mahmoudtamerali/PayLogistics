@@ -1,5 +1,6 @@
 # Source security scans: secrets (Gitleaks), SAST (Semgrep), SCA/FS (Trivy), and IaC (Checkov).
-# Gitleaks fails on secrets; Semgrep, Trivy, and Checkov start in report-only mode while tuning.
+# Gitleaks, Semgrep (ERROR severity) and Trivy (fixable HIGH/CRITICAL) block the run.
+# Checkov reports only, but a broken Checkov run now fails the step.
 name: security-scan
 
 on:
@@ -28,21 +29,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Semgrep (SAST, report only)
+      - name: Semgrep (SAST, fails on ERROR severity)
         run: |
           docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep:latest \
-            semgrep scan --config auto --metrics=off --quiet || true
+            semgrep scan --config p/default --metrics=off --severity ERROR --error
 
-      - name: Trivy on source files (dependencies and config, report only)
+      - name: Trivy on source files (dependencies and config, fails on fixable HIGH/CRITICAL)
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace aquasec/trivy:latest \
             fs . \
             --format table \
             --severity CRITICAL,HIGH \
             --ignore-unfixed \
-            --exit-code 0
+            --exit-code 1
 
       - name: Checkov (Terraform IaC scan, report only)
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace bridgecrew/checkov:latest \
-            -d infra terraform --soft-fail || true
+            --directory infra --framework terraform --soft-fail
