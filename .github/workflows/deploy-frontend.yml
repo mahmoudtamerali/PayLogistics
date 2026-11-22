@@ -1,4 +1,5 @@
 # Publish the static frontend to S3 (T98, first version: no CloudFront yet).
+# The security scan must pass first; the bucket is then mirrored from frontend/.
 name: deploy-frontend
 
 on:
@@ -10,16 +11,24 @@ on:
 
 permissions:
   contents: read
-  id-token: write # Required for AWS OIDC
 
 env:
   AWS_REGION: eu-west-1
   BUCKET: paylogistics-web-project-2026
 
 jobs:
+  scan:
+    uses: ./.github/workflows/security-scan.yml
+    permissions:
+      contents: read
+
   deploy:
+    needs: scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # Required for AWS OIDC
     steps:
       - uses: actions/checkout@v4
 
@@ -29,6 +38,6 @@ jobs:
           role-to-assume: ${{ vars.AWS_FRONTEND_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Publish to S3
+      - name: "Publish to S3 (mirror: replaces changed files, removes deleted ones)"
         run: |
-          aws s3 sync frontend/ "s3://${BUCKET}/" --exclude "README.md"
+          aws s3 sync frontend/ "s3://${BUCKET}/" --delete --exclude "README.md"

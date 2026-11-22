@@ -8,6 +8,7 @@ on:
   pull_request:
     branches: ["main"]
   workflow_dispatch: {}
+  workflow_call: {} # Lets deploy-frontend run this scan before publishing
 
 permissions:
   contents: read
