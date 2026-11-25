@@ -1,0 +1,36 @@
+# DynamoDB point-in-time recovery (PITR) and TTL are settings INSIDE the
+# aws_dynamodb_table resource. They cannot be added from a separate file.
+# The tables are written by the Lead / API role, so copy the two blocks
+# (point_in_time_recovery and ttl) into their existing table resources.
+# This file is only an example, which is why it ends in .example.
+
+resource "aws_dynamodb_table" "appointments_example" {
+  name         = "appointments"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "pk"
+  range_key    = "sk"
+
+  attribute {
+    name = "pk"
+    type = "S"
+  }
+  attribute {
+    name = "sk"
+    type = "S"
+  }
+
+  # Continuous backup, can restore to any second in the last 35 days.
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  # Delete old records automatically.
+  # The app must write "expires_at" (a Unix time in SECONDS) on every record:
+  #   appointments: visit date + 2 years
+  #   visit notes:  last visit date + 5 years
+  # TTL deletes can take up to a couple of days after the time passes, and are free.
+  ttl {
+    attribute_name = "expires_at"
+    enabled        = true
+  }
+}
