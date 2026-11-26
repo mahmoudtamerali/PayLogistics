@@ -127,7 +127,7 @@ function renderAuthGate(root, errorMessage = "") {
 function renderUnassignedGate(root, session) {
   clear(root);
   const displayName = session.claims.name || session.claims.email || "Member";
-  const card = el("div", { className: "auth-gate-card" }, [
+  const card = el("div", { className: "auth-gate-card auth-gate-standalone" }, [
     el("a", { className: "brand", href: "/" }, [
       el("img", { className: "brand-mark", src: "assets/images/logo.svg", alt: "", width: "34", height: "34" }),
       el("span", {}, [

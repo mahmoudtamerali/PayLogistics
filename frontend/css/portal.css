@@ -523,6 +523,56 @@
   gap: 1.25rem;
 }
 
+.auth-gate-standalone {
+  max-width: 460px;
+  background: var(--sc-surface);
+  border: 1px solid var(--sc-border);
+  border-radius: var(--sc-radius-xl);
+  box-shadow: var(--sc-shadow-lg);
+}
+
+.portal-boot-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.125rem;
+  width: 100%;
+  max-width: 240px;
+  padding: 1.5rem;
+}
+
+.portal-boot-logo {
+  width: 44px;
+  height: 44px;
+}
+
+.portal-boot-track {
+  width: 120px;
+  height: 3px;
+  border-radius: 9999px;
+  background: var(--sc-border);
+  overflow: hidden;
+  position: relative;
+}
+
+.portal-boot-bar {
+  width: 46%;
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--sc-primary);
+  animation: scBootSlide 1.05s ease-in-out infinite;
+}
+
+@keyframes scBootSlide {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(230%);
+  }
+}
+
 .auth-gate-card h1 {
   font-family: var(--sc-font-serif);
   font-size: 1.625rem;

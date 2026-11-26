@@ -9,19 +9,21 @@
   <link rel="stylesheet" href="css/tokens.css" />
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/portal.css" />
+  <link rel="modulepreload" href="js/portal.js" />
+  <link rel="modulepreload" href="js/config.js" />
+  <link rel="modulepreload" href="js/auth.js" />
+  <link rel="modulepreload" href="js/api.js" />
+  <link rel="modulepreload" href="js/ui.js" />
+  <link rel="modulepreload" href="js/views/overview.js" />
 </head>
 <body>
   <div id="portal-root">
-    <div class="auth-gate">
-      <div class="auth-gate-card">
-        <div class="brand">
-          <img class="brand-mark" src="assets/images/logo.svg" alt="" width="34" height="34" />
-          <span>
-            <span class="brand-name">SecureCare Health</span>
-            <span class="brand-sub">Clinical Portal</span>
-          </span>
+    <div class="auth-gate" aria-busy="true" aria-label="Opening SecureCare portal">
+      <div class="portal-boot-loader">
+        <img class="portal-boot-logo" src="assets/images/logo.svg" alt="SecureCare Health" width="44" height="44" />
+        <div class="portal-boot-track" role="progressbar" aria-label="Loading portal">
+          <div class="portal-boot-bar"></div>
         </div>
-        <p style="margin:0;color:var(--sc-text-secondary);">Loading workspace...</p>
       </div>
     </div>
   </div>
