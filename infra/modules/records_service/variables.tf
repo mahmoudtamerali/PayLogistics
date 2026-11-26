@@ -74,9 +74,9 @@ variable "kms_key_arn" {
 }
 
 variable "log_retention_days" {
-  description = "How long logs are kept. Compliance decides the final value; storage is cheap at this size."
+  description = "How long logs are kept. 90 days matches the Compliance retention schedule; storage is cheap at this size."
   type        = number
-  default     = 30
+  default     = 90
 }
 
 variable "deletion_protection" {
