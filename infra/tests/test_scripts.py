@@ -89,6 +89,111 @@ def test_probe_lambda_reports_connection_error():
     assert out["status"] == 0
 
 
+# ---------------------------------------------------------------- probe_lambda: authenticated mode
+
+class _FakeSecretsClient:
+    def __init__(self, values):
+        self.values = values  # {(secret_id, stage): secret_string}
+        self.calls = []
+
+    def get_secret_value(self, SecretId, VersionStage):  # noqa: N803 - boto3's own casing
+        self.calls.append((SecretId, VersionStage))
+        if (SecretId, VersionStage) not in self.values:
+            raise KeyError(f"no fake secret for {(SecretId, VersionStage)}")
+        return {"SecretString": self.values[(SecretId, VersionStage)]}
+
+
+class _FakeHTTPResponse:
+    def __init__(self, status=200, body=b"ok"):
+        self.status = status
+        self._body = body
+
+    def read(self, n=None):
+        return self._body if n is None else self._body[:n]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def test_probe_old_url_only_mode_is_unchanged(monkeypatch):
+    """The exact payload check 4 / prove_isolation.py sends must still take the plain-GET path."""
+    seen = []
+
+    def fake_urlopen(url_or_req, timeout=None):
+        seen.append(url_or_req)
+        assert isinstance(url_or_req, str)  # old mode: bare url string, not a Request
+        return _FakeHTTPResponse(200, b"ok-body")
+
+    monkeypatch.setattr(probe_lambda.urllib.request, "urlopen", fake_urlopen)
+    out = probe_lambda.handler({"url": "http://x/health"})
+    assert out == {"status": 200, "body": "ok-body"}
+    assert seen == ["http://x/health"]
+
+
+def test_probe_sends_token_as_header_and_never_returns_it(monkeypatch):
+    fake_secrets = _FakeSecretsClient({("tok-arn", "AWSCURRENT"): "super-secret-value"})
+    monkeypatch.setattr(probe_lambda.boto3, "client", lambda name: fake_secrets)
+
+    captured = {}
+
+    def fake_urlopen(req, timeout=None):
+        captured["headers"] = dict(req.headers)
+        captured["method"] = req.get_method()
+        captured["data"] = req.data
+        return _FakeHTTPResponse(201, b"created")
+
+    monkeypatch.setattr(probe_lambda.urllib.request, "urlopen", fake_urlopen)
+
+    out = probe_lambda.handler(
+        {
+            "url": "http://x/patients/p1/notes",
+            "method": "POST",
+            "json_body": {"visit_date": "2026-01-01", "text": "t"},
+            "token_secret_id": "tok-arn",
+            "caller_id": "doc-1",
+            "caller_role": "doctor",
+        }
+    )
+
+    assert out == {"status": 201, "body": "created"}
+    assert "super-secret-value" not in json.dumps(out)  # the result never carries the token
+    assert captured["headers"]["X-internal-token"] == "super-secret-value"
+    assert captured["headers"]["X-caller-id"] == "doc-1"
+    assert captured["headers"]["X-caller-role"] == "doctor"
+    assert captured["method"] == "POST"
+    assert json.loads(captured["data"]) == {"visit_date": "2026-01-01", "text": "t"}
+    assert fake_secrets.calls == [("tok-arn", "AWSCURRENT")]
+
+
+def test_probe_uses_requested_token_stage(monkeypatch):
+    fake_secrets = _FakeSecretsClient({("tok-arn", "AWSPREVIOUS"): "old-secret"})
+    monkeypatch.setattr(probe_lambda.boto3, "client", lambda name: fake_secrets)
+    monkeypatch.setattr(
+        probe_lambda.urllib.request, "urlopen", lambda req, timeout=None: _FakeHTTPResponse(200, b"ok")
+    )
+
+    probe_lambda.handler(
+        {"url": "http://x/health", "token_secret_id": "tok-arn", "token_stage": "AWSPREVIOUS"}
+    )
+    assert fake_secrets.calls == [("tok-arn", "AWSPREVIOUS")]
+
+
+def test_probe_wrong_stage_is_handled_not_raised(monkeypatch):
+    """Asking for a stage the fake secret doesn't have must come back as a handled error, not a crash."""
+    fake_secrets = _FakeSecretsClient({("tok-arn", "AWSCURRENT"): "v"})
+    monkeypatch.setattr(probe_lambda.boto3, "client", lambda name: fake_secrets)
+
+    out = probe_lambda.handler(
+        {"url": "http://x/health", "token_secret_id": "tok-arn", "token_stage": "AWSPREVIOUS"}
+    )
+    assert out["status"] == 0
+    assert "error" in out
+    assert "v" not in json.dumps(out)
+
+
 # ---------------------------------------------------------------- recovery
 def test_guard_refuses_other_clusters_and_services():
     with pytest.raises(SystemExit):

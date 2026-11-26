@@ -209,6 +209,26 @@ resource "aws_iam_role_policy_attachment" "probe_vpc" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
+# Lets the probe read the records service's internal token for the authenticated-path test only.
+# The secret uses the default AWS-managed Secrets Manager key (no CMK), so no kms:Decrypt is needed here.
+data "aws_iam_policy_document" "probe_secret" {
+  count = var.deploy ? 1 : 0
+
+  statement {
+    sid       = "ReadInternalToken"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [module.records.internal_token_secret_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "probe_secret" {
+  count = var.deploy ? 1 : 0
+
+  name   = "securecare-probe-secret"
+  role   = aws_iam_role.probe[0].name
+  policy = data.aws_iam_policy_document.probe_secret[0].json
+}
+
 resource "aws_lambda_function" "probe" {
   count = var.deploy ? 1 : 0
 
@@ -218,7 +238,7 @@ resource "aws_lambda_function" "probe" {
   handler          = "probe_lambda.handler"
   filename         = data.archive_file.probe.output_path
   source_code_hash = data.archive_file.probe.output_base64sha256
-  timeout          = 10
+  timeout          = 15
 
   vpc_config {
     subnet_ids         = module.network.private_subnet_ids
