@@ -1,15 +1,52 @@
 /**
  * Cognito Hosted UI Authorization Code + PKCE Authentication.
- * Tokens are stored exclusively in module closure memory—never in browser storage.
+ * Keeps the active session in JS memory and tab-scoped sessionStorage (no persistent disk storage)
+ * so page refreshes preserve the workspace until tab close or sign-out.
  */
 import { CONFIG } from "./config.js";
 
 const PKCE_VERIFIER_KEY = "sc_pkce_verifier";
 const PKCE_STATE_KEY = "sc_pkce_state";
+const SESSION_STORAGE_KEY = "sc_auth_session";
 const ROLE_PRIORITY = ["admin", "doctor", "staff", "patient"];
 
-/** @type {{ idToken: string, claims: Record<string, any>, role: string, groups: string[], expiresAtMs: number } | null} */
+/** @type {{ idToken: string, refreshToken: string | null, claims: Record<string, any>, role: string, groups: string[], expiresAtMs: number } | null} */
 let activeSession = null;
+let refreshPromise = null;
+
+function readStoredSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.idToken !== "string") return null;
+    return {
+      idToken: parsed.idToken,
+      refreshToken: typeof parsed.refreshToken === "string" && parsed.refreshToken ? parsed.refreshToken : null
+    };
+  } catch (_err) {
+    return null;
+  }
+}
+
+function writeStoredSession(idToken, refreshToken = null) {
+  try {
+    sessionStorage.setItem(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({ idToken, refreshToken: refreshToken || null })
+    );
+  } catch (_err) {
+    // Ignore storage errors in restricted browser contexts.
+  }
+}
+
+function clearStoredSession() {
+  try {
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch (_err) {
+    // Ignore storage errors.
+  }
+}
 
 function base64UrlEncode(bytes) {
   let binary = "";
@@ -95,6 +132,7 @@ export async function startSignup() {
 
 export function clearMemorySession() {
   activeSession = null;
+  clearStoredSession();
 }
 
 export function signOut() {
@@ -109,7 +147,7 @@ export function signOut() {
   window.location.assign(`${CONFIG.cognitoDomain}/logout?${params.toString()}`);
 }
 
-export function setSessionFromToken(idToken) {
+export function setSessionFromToken(idToken, refreshToken = null) {
   const claims = decodeJwtPayload(idToken);
   const expSeconds = Number(claims.exp || 0);
   const expiresAtMs = expSeconds * 1000;
@@ -118,17 +156,56 @@ export function setSessionFromToken(idToken) {
     throw new Error("Your session token has expired.");
   }
   const { role, groups } = resolveRoleFromClaims(claims);
+  const preservedRefresh = refreshToken || activeSession?.refreshToken || null;
   activeSession = {
     idToken,
+    refreshToken: preservedRefresh,
     claims,
     role,
     groups,
     expiresAtMs
   };
+  writeStoredSession(idToken, preservedRefresh);
   return activeSession;
 }
 
+export function restoreSessionFromStorage() {
+  const stored = readStoredSession();
+  if (!stored) return null;
+  try {
+    const claims = decodeJwtPayload(stored.idToken);
+    const expSeconds = Number(claims.exp || 0);
+    const expiresAtMs = expSeconds * 1000;
+    if (!expSeconds) {
+      clearStoredSession();
+      return null;
+    }
+    if (Date.now() >= expiresAtMs) {
+      if (!stored.refreshToken) {
+        clearStoredSession();
+      }
+      return null;
+    }
+    const { role, groups } = resolveRoleFromClaims(claims);
+    activeSession = {
+      idToken: stored.idToken,
+      refreshToken: stored.refreshToken,
+      claims,
+      role,
+      groups,
+      expiresAtMs
+    };
+    return activeSession;
+  } catch (_err) {
+    clearStoredSession();
+    return null;
+  }
+}
+
 export function getSession() {
+  if (!activeSession) {
+    restoreSessionFromStorage();
+  }
   if (!activeSession) return null;
   if (Date.now() >= activeSession.expiresAtMs) {
     activeSession = null;
@@ -201,6 +278,50 @@ export async function handleCallbackIfPresent(fetchImpl = window.fetch.bind(wind
     throw new Error("Identity token was not returned.");
   }
 
-  const session = setSessionFromToken(tokenData.id_token);
+  const session = setSessionFromToken(tokenData.id_token, tokenData.refresh_token || null);
   return { handled: true, session };
+}
+
+export async function refreshSession(fetchImpl = window.fetch.bind(window)) {
+  if (refreshPromise) return refreshPromise;
+  const stored = readStoredSession();
+  const refreshToken = activeSession?.refreshToken || stored?.refreshToken || null;
+  if (!refreshToken) return null;
+
+  refreshPromise = (async () => {
+    try {
+      const body = new URLSearchParams({
+        grant_type: "refresh_token",
+        client_id: CONFIG.clientId,
+        refresh_token: refreshToken
+      });
+      const resp = await fetchImpl(`${CONFIG.cognitoDomain}/oauth2/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString()
+      });
+      if (!resp.ok) {
+        clearMemorySession();
+        return null;
+      }
+      const tokenData = await resp.json();
+      if (!tokenData?.id_token) {
+        clearMemorySession();
+        return null;
+      }
+      return setSessionFromToken(tokenData.id_token, tokenData.refresh_token || refreshToken);
+    } catch (_err) {
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+export async function ensureActiveSession(fetchImpl = window.fetch.bind(window)) {
+  const current = getSession();
+  if (current) return current;
+  return refreshSession(fetchImpl);
 }

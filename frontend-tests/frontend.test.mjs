@@ -131,7 +131,7 @@ test("Cognito PKCE config and URL generation match registered AWS client", async
   assert.equal(signupUrl.pathname, "/signup");
 });
 
-test("PKCE callback exchanges code, keeps token strictly in memory, and clears sessionStorage", async () => {
+test("PKCE callback exchanges code, persists tab session across reload, and clears on sign-out", async () => {
   const store = installBrowserEnv("https://outship.me");
   const authUrl = new URL(await auth.buildAuthUrl("/login"));
   const state = authUrl.searchParams.get("state");
@@ -144,13 +144,19 @@ test("PKCE callback exchanges code, keeps token strictly in memory, and clears s
     "cognito:groups": ["patient"],
     exp: futureExp
   });
+  const renewedIdToken = makeFakeJwt({
+    sub: "pat-sub-001",
+    email: "patient@outship.me",
+    "cognito:groups": ["patient"],
+    exp: futureExp + 3600
+  });
 
   const mockFetch = async (url, init) => {
     assert.equal(url, "https://eu-west-1s51fcyw5c.auth.eu-west-1.amazoncognito.com/oauth2/token");
     assert.equal(init.method, "POST");
     return {
       ok: true,
-      json: async () => ({ id_token: fakeIdToken })
+      json: async () => ({ id_token: fakeIdToken, refresh_token: "refresh-tok-1" })
     };
   };
 
@@ -160,8 +166,28 @@ test("PKCE callback exchanges code, keeps token strictly in memory, and clears s
   assert.equal(auth.getIdToken(), fakeIdToken);
   assert.equal(store.has("sc_pkce_verifier"), false);
   assert.equal(store.has("sc_pkce_state"), false);
+  assert.equal(store.has("sc_auth_session"), true);
+
+  // Verify refreshSession renews tokens cleanly without losing the session.
+  const refreshed = await auth.refreshSession(async (url, init) => {
+    assert.equal(url, "https://eu-west-1s51fcyw5c.auth.eu-west-1.amazoncognito.com/oauth2/token");
+    assert.match(init.body, /grant_type=refresh_token/);
+    return {
+      ok: true,
+      json: async () => ({ id_token: renewedIdToken })
+    };
+  });
+  assert.equal(refreshed.idToken, renewedIdToken);
+  assert.equal(auth.getIdToken(), renewedIdToken);
+
   auth.clearMemorySession();
+  assert.equal(store.has("sc_auth_session"), false);
   assert.equal(auth.getIdToken(), null);
+
+  // Simulate reloading the page with an existing valid session in sessionStorage.
+  store.set("sc_auth_session", JSON.stringify({ idToken: renewedIdToken, refreshToken: "refresh-tok-1" }));
+  assert.equal(auth.getIdToken(), renewedIdToken);
+  auth.clearMemorySession();
 });
 
 test("API client covers every non-OPTIONS endpoint in securecare-apigateway-v4.json", async () => {

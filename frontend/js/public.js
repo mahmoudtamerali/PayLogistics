@@ -1,4 +1,4 @@
-import { startLogin, startSignup } from "./auth.js";
+import { getSession, startLogin, startSignup } from "./auth.js";
 
 function initPublicSite() {
   // Forward any OAuth callback landing on a public page straight to portal.html before exchange.
@@ -25,6 +25,10 @@ function initPublicSite() {
   document.querySelectorAll('[data-auth-action="login"]').forEach((btn) => {
     btn.addEventListener("click", async (event) => {
       event.preventDefault();
+      if (getSession()) {
+        window.location.assign("/portal.html");
+        return;
+      }
       btn.setAttribute("disabled", "true");
       try {
         await startLogin();

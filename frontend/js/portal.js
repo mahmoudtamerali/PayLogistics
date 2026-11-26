@@ -1,10 +1,12 @@
 import { createApiClient } from "./api.js";
 import {
   clearMemorySession,
+  ensureActiveSession,
   getRemainingSeconds,
   getSession,
   handleCallbackIfPresent,
   isExpiringSoon,
+  refreshSession,
   signOut,
   startLogin,
   startSignup
@@ -148,12 +150,18 @@ function renderUnassignedGate(root, session) {
   root.appendChild(el("div", { className: "auth-gate" }, [card]));
 }
 
+function readRouteFromHash(navItems) {
+  const hash = (window.location.hash || "").replace(/^#/, "").trim();
+  if (hash && navItems.some((item) => item.id === hash)) {
+    return hash;
+  }
+  return navItems[0]?.id || "overview";
+}
+
 function renderPortalShell(root, session) {
   clear(root);
   const navItems = NAV_BY_ROLE[session.role] || [];
-  if (!navItems.some((item) => item.id === currentRoute)) {
-    currentRoute = navItems[0]?.id || "overview";
-  }
+  currentRoute = readRouteFromHash(navItems);
 
   const rawName = session.claims.name ? String(session.claims.name).trim() : "";
   const rawEmail = session.claims.email ? String(session.claims.email).trim() : "";
@@ -215,6 +223,9 @@ function renderPortalShell(root, session) {
   async function navigate(routeId) {
     currentRoute = routeId;
     const item = navItems.find((n) => n.id === routeId) || navItems[0];
+    if (window.history?.replaceState && window.location.hash !== `#${currentRoute}`) {
+      window.history.replaceState({}, document.title, `${window.location.pathname}#${currentRoute}`);
+    }
     topTitle.textContent = item ? item.label : "Workspace";
     buildNav();
 
@@ -269,11 +280,17 @@ function renderPortalShell(root, session) {
   root.appendChild(el("div", { className: "portal-shell" }, [railBackdrop, rail, mainCol]));
 
   if (sessionTimerId) window.clearInterval(sessionTimerId);
-  sessionTimerId = window.setInterval(() => {
-    const active = getSession();
+  sessionTimerId = window.setInterval(async () => {
+    let active = getSession();
+    if (!active) {
+      active = await refreshSession();
+    }
     if (!active) {
       renderAuthGate(root, "Your session has expired. Please sign in again.");
       return;
+    }
+    if (isExpiringSoon()) {
+      await refreshSession();
     }
     clear(expirySlot);
     if (isExpiringSoon()) {
@@ -304,7 +321,7 @@ async function initPortal() {
     return;
   }
 
-  const session = getSession();
+  const session = await ensureActiveSession();
   if (!session) {
     renderAuthGate(root);
     return;
