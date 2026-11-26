@@ -88,8 +88,8 @@ export async function renderNotesView(container, ctx) {
     clear(listCol);
     const headerChildren = [
       el("div", {}, [
-        el("h3", { className: "panel-title", text: "Clinical Encounters" }),
-        el("p", { className: "panel-sub", text: role === "doctor" ? "Select an assigned patient to review notes" : "Your consultation summaries" })
+        el("h3", { className: "panel-title", text: "Consultation Notes" }),
+        el("p", { className: "panel-sub", text: role === "doctor" ? "Select a patient to view or add notes" : "Summaries signed by your doctor" })
       ])
     ];
     listCol.appendChild(el("div", { className: "panel-header" }, headerChildren));
@@ -99,8 +99,9 @@ export async function renderNotesView(container, ctx) {
     if (role === "doctor") {
       if (assignments.length > 0) {
         const sel = el("select", {
+          id: "notes-patient-select",
+          name: "patient_id",
           className: "select",
-          "aria-label": "Assigned patient",
           onChange: (e) => {
             selectedPatientId = e.target.value;
             selectedNote = null;
@@ -112,11 +113,13 @@ export async function renderNotesView(container, ctx) {
           return el("option", { value: pid, selected: pid === selectedPatientId, text: label });
         }));
         body.appendChild(el("div", { className: "field" }, [
-          el("label", { className: "field-label", text: "Assigned Patient" }),
+          el("label", { className: "field-label", for: "notes-patient-select", text: "Patient" }),
           sel
         ]));
       } else {
         const pidInput = el("input", {
+          id: "notes-patient-id",
+          name: "patient_id",
           type: "text",
           className: "input",
           placeholder: "Patient ID",
@@ -128,14 +131,14 @@ export async function renderNotesView(container, ctx) {
           }
         });
         body.appendChild(el("div", { className: "field" }, [
-          el("label", { className: "field-label", text: "Assigned Patient ID" }),
+          el("label", { className: "field-label", for: "notes-patient-id", text: "Patient ID" }),
           pidInput
         ]));
       }
     }
 
     if (notes.length === 0) {
-      body.appendChild(emptyState("No visit notes yet", "Signed clinical encounter notes will appear here after your visit.", "notes"));
+      body.appendChild(emptyState("No visit notes yet", "Consultation summaries will appear here after your appointment.", "notes"));
     } else {
       const stack = el("div", { className: "list-stack" });
       for (const n of notes) {
@@ -174,7 +177,7 @@ export async function renderNotesView(container, ctx) {
 
     const readerPanel = el("section", { className: "panel" });
     if (!selectedNote) {
-      readerPanel.appendChild(emptyState("Select an Encounter Note", "Choose any summary from the left list to read the full clinical record.", "notes"));
+      readerPanel.appendChild(emptyState("Select a Visit Note", "Choose a consultation summary from the list to read the full record.", "notes"));
     } else {
       const noteText = selectedNote.note || selectedNote.text || "";
       const author = selectedNote.clinicianName || selectedNote.author_name || selectedNote.author_id || "Attending Physician";
@@ -197,15 +200,15 @@ export async function renderNotesView(container, ctx) {
       const composerPanel = el("section", { className: "panel" }, [
         el("div", { className: "panel-header" }, [
           el("div", {}, [
-            el("h3", { className: "panel-title", text: "Author New Clinical Note" }),
-            el("p", { className: "panel-sub", text: "Document assessment, clinical findings, and follow-up plan for the selected assigned patient" })
+            el("h3", { className: "panel-title", text: "New Consultation Note" }),
+            el("p", { className: "panel-sub", text: "Add consultation findings and follow-up instructions for this patient" })
           ])
         ])
       ]);
 
       const errBox = el("div");
-      const titleInput = el("input", { type: "text", className: "input", maxlength: "120", placeholder: "Consultation summary title" });
-      const bodyInput = el("textarea", { className: "textarea", rows: "5", maxlength: "5000", placeholder: "Enter clinical observations and recommendations..." });
+      const titleInput = el("input", { id: "note-title", name: "title", type: "text", className: "input", maxlength: "120", placeholder: "Visit summary title" });
+      const bodyInput = el("textarea", { id: "note-body", name: "note", className: "textarea", rows: "5", maxlength: "5000", placeholder: "Enter clinical observations and follow-up recommendations..." });
       const countHint = el("span", { className: "field-hint tabular-nums", text: "0 / 5000 characters" });
       bodyInput.addEventListener("input", () => {
         countHint.textContent = `${bodyInput.value.length} / 5000 characters`;
@@ -242,8 +245,8 @@ export async function renderNotesView(container, ctx) {
         }
       }, [
         errBox,
-        el("div", { className: "field" }, [el("label", { className: "field-label", text: "Title" }), titleInput]),
-        el("div", { className: "field" }, [el("label", { className: "field-label", text: "Clinical Observations" }), bodyInput, countHint]),
+        el("div", { className: "field" }, [el("label", { className: "field-label", for: "note-title", text: "Title" }), titleInput]),
+        el("div", { className: "field" }, [el("label", { className: "field-label", for: "note-body", text: "Clinical Observations" }), bodyInput, countHint]),
         el("div", { style: "display:flex;justify-content:flex-end;" }, [submitBtn])
       ]));
       detailCol.appendChild(composerPanel);

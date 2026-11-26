@@ -26,9 +26,9 @@ function scanStatusVariant(status) {
 
 function scanStatusLabel(status) {
   const s = String(status || "PENDING_SCAN").toUpperCase();
-  if (s === "CLEAN") return "Clean";
-  if (s === "QUARANTINED" || s === "INFECTED") return "Quarantined";
-  return "Pending Scan";
+  if (s === "CLEAN") return "Verified";
+  if (s === "QUARANTINED" || s === "INFECTED") return "Blocked";
+  return "Processing";
 }
 
 export async function renderFilesView(container, ctx) {
@@ -67,8 +67,8 @@ export async function renderFilesView(container, ctx) {
 
     uploadPanel.appendChild(el("div", { className: "panel-header" }, [
       el("div", {}, [
-        el("h3", { className: "panel-title", text: "Upload Diagnostic Document" }),
-        el("p", { className: "panel-sub", text: "Accepted formats: PDF, PNG, or JPEG up to 10 MB. Files are screened before clinical release." })
+        el("h3", { className: "panel-title", text: "Upload Lab or Clinical Document" }),
+        el("p", { className: "panel-sub", text: "PDF, PNG, or JPEG up to 10 MB" })
       ])
     ]));
 
@@ -81,13 +81,15 @@ export async function renderFilesView(container, ctx) {
     progressWrap.appendChild(el("div", { className: "progress-track" }, [progressFill]));
 
     const staffPatientInput = el("input", {
+      id: "files-upload-patient-id",
+      name: "patient_id",
       type: "text",
       className: "input",
-      placeholder: "Enter target Patient ID"
+      placeholder: "Enter patient ID"
     });
     if (role === "staff") {
       body.appendChild(el("div", { className: "field", style: "max-width:340px;" }, [
-        el("label", { className: "field-label", text: "Patient ID" }),
+        el("label", { className: "field-label", for: "files-upload-patient-id", text: "Patient ID" }),
         staffPatientInput
       ]));
     }
@@ -141,7 +143,7 @@ export async function renderFilesView(container, ctx) {
 
       selectBtn.disabled = true;
       progressWrap.style.display = "flex";
-      progressLabel.textContent = "Authorizing upload...";
+      progressLabel.textContent = "Preparing upload...";
       progressFill.style.width = "10%";
 
       try {
@@ -157,13 +159,13 @@ export async function renderFilesView(container, ctx) {
           throw new Error("Upload destination was not provided by the server.");
         }
 
-        progressLabel.textContent = "Transferring encrypted document...";
+        progressLabel.textContent = "Uploading document...";
         await uploadFileToPresignedUrl(uploadUrl, file, uploadHeaders, (pct) => {
           progressFill.style.width = `${pct}%`;
           progressLabel.textContent = `Uploading ${cleanName} (${pct}%)`;
         });
 
-        showToast("Document uploaded and queued for automated screening.");
+        showToast("Document uploaded. Verification usually completes shortly.");
         await loadFiles(false);
       } catch (err) {
         statusBox.appendChild(alertBanner(err.message, "error"));
@@ -238,6 +240,9 @@ export async function renderFilesView(container, ctx) {
     const actionsBar = el("div", { className: "filter-bar" });
     if (role !== "patient") {
       actionsBar.appendChild(el("input", {
+        id: "files-filter-patient-id",
+        name: "filter_patient_id",
+        "aria-label": "Filter by Patient ID",
         type: "search",
         className: "input",
         placeholder: "Filter by Patient ID...",
@@ -252,12 +257,12 @@ export async function renderFilesView(container, ctx) {
       type: "button",
       className: "btn btn-secondary btn-sm",
       onClick: () => loadFiles(false)
-    }, [createIcon("refresh", 14), "Refresh Status"]));
+    }, [createIcon("refresh", 14), "Refresh"]));
 
     listPanel.appendChild(el("div", { className: "panel-header" }, [
       el("div", {}, [
-        el("h3", { className: "panel-title", text: "Laboratory & Diagnostic Documents" }),
-        el("p", { className: "panel-sub", text: role === "admin" ? "Document metadata overview (downloads restricted for admin role)" : "Clean documents are available for immediate download" })
+        el("h3", { className: "panel-title", text: "Lab & Diagnostic Documents" }),
+        el("p", { className: "panel-sub", text: role === "admin" ? "Uploaded file summary across patients" : "Verified documents are ready to download" })
       ]),
       actionsBar
     ]));
@@ -274,7 +279,7 @@ export async function renderFilesView(container, ctx) {
 
       let actionCell;
       if (!canDownload) {
-        actionCell = el("span", { style: "font-size:0.8125rem;color:var(--sc-muted);", text: "Metadata only" });
+        actionCell = el("span", { style: "font-size:0.8125rem;color:var(--sc-muted);", text: "Restricted" });
       } else if (isClean) {
         const dlBtn = el("button", {
           type: "button",
@@ -285,7 +290,7 @@ export async function renderFilesView(container, ctx) {
       } else if (rawStatus === "QUARANTINED" || rawStatus === "INFECTED") {
         actionCell = el("span", { style: "font-size:0.8125rem;color:var(--sc-danger-text);font-weight:600;", text: "Blocked" });
       } else {
-        actionCell = el("span", { style: "font-size:0.8125rem;color:var(--sc-muted);", text: "Awaiting scan" });
+        actionCell = el("span", { style: "font-size:0.8125rem;color:var(--sc-muted);", text: "Verifying" });
       }
 
       const cells = [

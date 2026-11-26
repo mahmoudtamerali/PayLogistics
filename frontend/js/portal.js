@@ -21,11 +21,11 @@ const VIEW_LOADERS = {
 };
 
 const ROLE_LABELS = {
-  patient: "Patient Care",
+  patient: "Patient Account",
   doctor: "Attending Physician",
-  staff: "Clinic Operations",
-  admin: "Compliance & Governance",
-  unassigned: "Account Pending Assignment"
+  staff: "Clinic Coordinator",
+  admin: "Clinic Administrator",
+  unassigned: "Account Pending Activation"
 };
 
 const NAV_BY_ROLE = {
@@ -135,7 +135,7 @@ function renderUnassignedGate(root, session) {
     ]),
     el("h1", { text: `Welcome, ${displayName}` }),
     alertBanner(
-      "Your account has been authenticated, but a clinic role has not yet been assigned. Please contact support@outship.me to complete onboarding.",
+      "Your account is active and awaiting clinic access setup. Please contact care@outship.me if you need assistance.",
       "info"
     ),
     el("button", {
@@ -155,8 +155,10 @@ function renderPortalShell(root, session) {
     currentRoute = navItems[0]?.id || "overview";
   }
 
-  const displayName = session.claims.name || session.claims.email || session.claims["cognito:username"] || "Portal User";
-  const displayEmail = session.claims.email || "";
+  const rawName = session.claims.name ? String(session.claims.name).trim() : "";
+  const rawEmail = session.claims.email ? String(session.claims.email).trim() : "";
+  const displayName = rawName || rawEmail || session.claims["cognito:username"] || "Member";
+  const displaySecondary = rawName && rawEmail ? rawEmail : (ROLE_LABELS[session.role] || "");
 
   const api = createApiClient({
     onUnauthorized: () => {
@@ -235,7 +237,7 @@ function renderPortalShell(root, session) {
   rail.appendChild(el("div", { className: "rail-footer" }, [
     el("div", { className: "rail-user" }, [
       el("div", { className: "rail-user-name", text: displayName }),
-      el("div", { className: "rail-user-meta", text: displayEmail })
+      el("div", { className: "rail-user-meta", text: displaySecondary })
     ]),
     el("button", {
       type: "button",
@@ -259,7 +261,7 @@ function renderPortalShell(root, session) {
       el("div", {}, [topTitle, topSub])
     ]),
     el("div", { className: "portal-topbar-right" }, [
-      el("a", { className: "btn btn-ghost btn-sm", href: "/", text: "Clinic Home" })
+      el("a", { className: "btn btn-ghost btn-sm", href: "/", text: "Home" })
     ])
   ]);
 

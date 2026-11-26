@@ -16,6 +16,20 @@ function statusVariant(status) {
   return "info";
 }
 
+function statusLabel(status) {
+  const s = String(status || "BOOKED").toUpperCase();
+  if (s === "COMPLETED") return "Completed";
+  if (s === "CANCELLED") return "Cancelled";
+  return "Scheduled";
+}
+
+function visitLabel(visitType) {
+  const v = String(visitType || "consultation").toLowerCase();
+  if (v === "follow_up") return "Follow-up";
+  if (v === "lab_visit") return "Lab Visit";
+  return "Consultation";
+}
+
 function toIsoUtc(datetimeLocalValue) {
   const d = new Date(datetimeLocalValue);
   if (Number.isNaN(d.getTime())) return "";
@@ -91,25 +105,27 @@ export async function renderAppointmentsView(container, ctx) {
   function openRescheduleModal(appt) {
     const apptId = appt.appointment_id || appt.id;
     const startsInput = el("input", {
+      id: "modal-appt-starts-at",
+      name: "startsAt",
       type: "datetime-local",
       className: "input tabular-nums",
       value: toLocalInputValue(appt.startsAt || appt.starts_at)
     });
-    const typeSelect = el("select", { className: "select" }, ALLOWED_VISIT_TYPES.map((vt) =>
-      el("option", { value: vt, selected: (appt.visitType || appt.visit_type) === vt, text: vt.replace("_", " ") })
+    const typeSelect = el("select", { id: "modal-appt-visit-type", name: "visitType", className: "select" }, ALLOWED_VISIT_TYPES.map((vt) =>
+      el("option", { value: vt, selected: (appt.visitType || appt.visit_type) === vt, text: visitLabel(vt) })
     ));
-    const statusSelect = el("select", { className: "select" }, ALLOWED_APPOINTMENT_STATUSES.map((st) =>
-      el("option", { value: st, selected: (appt.status || "BOOKED") === st, text: st })
+    const statusSelect = el("select", { id: "modal-appt-status", name: "status", className: "select" }, ALLOWED_APPOINTMENT_STATUSES.map((st) =>
+      el("option", { value: st, selected: (appt.status || "BOOKED") === st, text: statusLabel(st) })
     ));
     const errSlot = el("div");
 
     const fields = [
       errSlot,
-      el("div", { className: "field" }, [el("label", { className: "field-label", text: "Date & Time" }), startsInput]),
-      el("div", { className: "field" }, [el("label", { className: "field-label", text: "Visit Type" }), typeSelect])
+      el("div", { className: "field" }, [el("label", { className: "field-label", for: "modal-appt-starts-at", text: "Date & Time" }), startsInput]),
+      el("div", { className: "field" }, [el("label", { className: "field-label", for: "modal-appt-visit-type", text: "Visit Type" }), typeSelect])
     ];
     if (role !== "patient") {
-      fields.push(el("div", { className: "field" }, [el("label", { className: "field-label", text: "Status" }), statusSelect]));
+      fields.push(el("div", { className: "field" }, [el("label", { className: "field-label", for: "modal-appt-status", text: "Status" }), statusSelect]));
     }
 
     openModal({
@@ -150,8 +166,8 @@ export async function renderAppointmentsView(container, ctx) {
         body: [
           el("div", { className: "field" }, [el("span", { className: "field-label", text: "Clinician" }), el("div", { text: item.clinicianName || clinicianLabel(item.clinician_id) })]),
           el("div", { className: "field" }, [el("span", { className: "field-label", text: "Scheduled Time" }), el("div", { className: "tabular-nums", text: formatDateTime(item.startsAt || item.starts_at) })]),
-          el("div", { className: "field" }, [el("span", { className: "field-label", text: "Visit Type" }), el("div", { text: String(item.visitType || item.visit_type || "consultation").replace("_", " ") })]),
-          el("div", { className: "field" }, [el("span", { className: "field-label", text: "Status" }), statusBadge(item.status || "BOOKED", statusVariant(item.status || "BOOKED"))])
+          el("div", { className: "field" }, [el("span", { className: "field-label", text: "Visit Type" }), el("div", { text: visitLabel(item.visitType || item.visit_type) })]),
+          el("div", { className: "field" }, [el("span", { className: "field-label", text: "Status" }), statusBadge(statusLabel(item.status || "BOOKED"), statusVariant(item.status || "BOOKED"))])
         ],
         footerButtons: [{ label: "Close", className: "btn btn-secondary", onClick: (close) => close() }]
       });
@@ -164,6 +180,8 @@ export async function renderAppointmentsView(container, ctx) {
     clear(listPanel);
 
     const statusFilter = el("select", {
+      id: "filter-appt-status",
+      name: "filter_status",
       className: "select",
       "aria-label": "Filter by status",
       onChange: (e) => {
@@ -172,10 +190,12 @@ export async function renderAppointmentsView(container, ctx) {
       }
     }, [
       el("option", { value: "", selected: filterStatus === "", text: "All Statuses" }),
-      ...ALLOWED_APPOINTMENT_STATUSES.map((s) => el("option", { value: s, selected: filterStatus === s, text: s }))
+      ...ALLOWED_APPOINTMENT_STATUSES.map((s) => el("option", { value: s, selected: filterStatus === s, text: statusLabel(s) }))
     ]);
 
     const dayFilter = el("input", {
+      id: "filter-appt-day",
+      name: "filter_day",
       type: "date",
       className: "input tabular-nums",
       "aria-label": "Filter by date",
@@ -190,8 +210,11 @@ export async function renderAppointmentsView(container, ctx) {
 
     if (role !== "patient") {
       const patientSearch = el("input", {
+        id: "filter-appt-patient",
+        name: "filter_patient",
         type: "search",
         className: "input",
+        "aria-label": "Filter by patient",
         placeholder: "Patient ID...",
         value: filterPatient,
         onChange: (e) => {
@@ -274,8 +297,8 @@ export async function renderAppointmentsView(container, ctx) {
       if (role !== "patient") {
         cells.push(el("td", { className: "mono", text: appt.patient_id || appt.patientId || "—" }));
       }
-      cells.push(el("td", { text: String(appt.visitType || appt.visit_type || "consultation").replace("_", " ") }));
-      cells.push(el("td", {}, [statusBadge(status, statusVariant(status))]));
+      cells.push(el("td", { text: visitLabel(appt.visitType || appt.visit_type) }));
+      cells.push(el("td", {}, [statusBadge(statusLabel(status), statusVariant(status))]));
       cells.push(el("td", { style: "text-align:right;" }, [actions]));
 
       tbody.appendChild(el("tr", {}, cells));
@@ -313,6 +336,24 @@ export async function renderAppointmentsView(container, ctx) {
       ])
     ]));
 
+    if (role === "patient" && clinicians.length === 0) {
+      const retryBtn = el("button", {
+        type: "button",
+        className: "btn btn-secondary btn-sm",
+        text: "Retry",
+        onClick: async () => {
+          retryBtn.disabled = true;
+          await loadClinicians();
+          renderBookingForm();
+        }
+      });
+      formPanel.appendChild(el("div", { className: "panel-body", style: "display:flex;flex-direction:column;gap:0.875rem;" }, [
+        alertBanner("Clinician availability could not be loaded. Please try again in a moment.", "warn"),
+        el("div", {}, [retryBtn])
+      ]));
+      return;
+    }
+
     const formErr = el("div");
     const patientInput = el("input", { id: "appt-patient-id", name: "patient_id", type: "text", className: "input", placeholder: "Patient identifier" });
 
@@ -324,7 +365,7 @@ export async function renderAppointmentsView(container, ctx) {
       : el("input", { id: "appt-clinician-id", name: "clinician_id", type: "text", className: "input", placeholder: "Clinician ID" });
 
     const visitTypeSelect = el("select", { id: "appt-visit-type", name: "visitType", className: "select" }, ALLOWED_VISIT_TYPES.map((vt) =>
-      el("option", { value: vt, text: vt.replace("_", " ").replace(/\b\w/g, (ch) => ch.toUpperCase()) })
+      el("option", { value: vt, text: visitLabel(vt) })
     ));
 
     const tomorrow = new Date(Date.now() + 24 * 3600 * 1000);

@@ -19,7 +19,7 @@ export async function renderPrivacyView(container, ctx) {
   if (session.role !== "patient") {
     container.appendChild(
       el("section", { className: "panel" }, [
-        emptyState("Patient Privacy Workspace", "Personal data export and erasure controls apply to patient accounts.", "shield")
+        emptyState("Patient Records & Privacy", "Personal health record exports and deletion requests are available for patient accounts.", "shield")
       ])
     );
     return;
@@ -106,8 +106,8 @@ export async function renderPrivacyView(container, ctx) {
         style: "padding:0.875rem;border:1px solid var(--sc-border);border-radius:var(--sc-radius-md);background:var(--sc-surface-alt);display:flex;align-items:center;justify-content:space-between;gap:0.75rem;"
       }, [
         el("div", {}, [
-          el("div", { style: "font-weight:600;font-size:0.875rem;", text: `Privacy Request ${item.request_id || item.requestId || requestId}` }),
-          el("div", { className: "field-hint", text: item.type || item.statusMessage || "Tracked under compliance oversight" })
+          el("div", { style: "font-weight:600;font-size:0.875rem;", text: `Request ${item.request_id || item.requestId || requestId}` }),
+          el("div", { className: "field-hint", text: item.type || item.statusMessage || "Request recorded" })
         ]),
         statusBadge(String(item.status || "SUBMITTED"), "info")
       ]));
@@ -120,8 +120,8 @@ export async function renderPrivacyView(container, ctx) {
     clear(rightsPanel);
     rightsPanel.appendChild(el("div", { className: "panel-header" }, [
       el("div", {}, [
-        el("h3", { className: "panel-title", text: "Your Health Data Rights" }),
-        el("p", { className: "panel-sub", text: "Download a copy of your records or submit a formal erasure request" })
+        el("h3", { className: "panel-title", text: "Health Records & Privacy" }),
+        el("p", { className: "panel-sub", text: "Download a copy of your health records or manage account deletion" })
       ])
     ]));
 
@@ -149,14 +149,14 @@ export async function renderPrivacyView(container, ctx) {
           exportBtn.disabled = false;
         }
       }
-    }, [createIcon("download", 14), "Download JSON"]);
+    }, [createIcon("download", 14), "Export Records (JSON)"]);
 
     body.appendChild(el("div", {
       style: "padding:1rem;border:1px solid var(--sc-border);border-radius:var(--sc-radius-md);background:var(--sc-surface-alt);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.75rem;"
     }, [
       el("div", {}, [
-        el("div", { style: "font-weight:600;font-size:0.875rem;", text: "Portable Health Record Archive" }),
-        el("div", { className: "field-hint", text: "Includes your profile, appointments, visit notes, and document metadata." })
+        el("div", { style: "font-weight:600;font-size:0.875rem;", text: "Download My Health Records" }),
+        el("div", { className: "field-hint", text: "Includes your profile, scheduled visits, consultation notes, and lab document list." })
       ]),
       exportBtn
     ]));
@@ -169,24 +169,27 @@ export async function renderPrivacyView(container, ctx) {
       onClick: () => {
         const errSlot = el("div");
         const reasonInput = el("textarea", {
+          id: "erasure-reason",
+          name: "reason",
           className: "textarea",
           rows: "3",
           maxlength: "500",
-          placeholder: "Please describe why you are requesting account and data erasure (5–500 characters)..."
+          placeholder: "Explain why you are requesting account deletion (5–500 characters)..."
         });
-        const confirmChk = el("input", { type: "checkbox" });
+        const confirmChk = el("input", { id: "erasure-confirm", name: "confirm", type: "checkbox" });
         const confirmLabel = el("label", {
+          for: "erasure-confirm",
           style: "display:flex;align-items:flex-start;gap:0.5rem;font-size:0.8125rem;cursor:pointer;"
         }, [
           confirmChk,
-          el("span", { text: "I confirm that I want to submit a formal erasure request subject to clinical record retention requirements." })
+          el("span", { text: "I understand this requests permanent deletion of my account and records where permitted by clinical retention requirements." })
         ]);
 
         openModal({
           title: "Confirm Erasure Request",
           body: [
             errSlot,
-            el("div", { className: "field" }, [el("label", { className: "field-label", text: "Reason for Request" }), reasonInput]),
+            el("div", { className: "field" }, [el("label", { className: "field-label", for: "erasure-reason", text: "Reason for Request" }), reasonInput]),
             confirmLabel
           ],
           footerButtons: [
@@ -218,21 +221,21 @@ export async function renderPrivacyView(container, ctx) {
     body.appendChild(el("div", {
       style: "padding:1rem;border-radius:var(--sc-radius-md);background:var(--sc-danger-bg);display:flex;flex-direction:column;gap:0.625rem;"
     }, [
-      el("div", { style: "font-weight:600;font-size:0.875rem;color:var(--sc-danger-text);", text: "Account & Record Erasure" }),
-      el("div", { style: "font-size:0.8125rem;color:var(--sc-danger-text);", text: "Submit a formal deletion request for compliance review." }),
+      el("div", { style: "font-weight:600;font-size:0.875rem;color:var(--sc-danger-text);", text: "Delete Account & Health Records" }),
+      el("div", { style: "font-size:0.8125rem;color:var(--sc-danger-text);", text: "Request permanent deletion of your portal account and personal data." }),
       el("div", {}, [eraseBtn])
     ]));
 
     // Request status lookup
     const reqInput = el("input", { id: "privacy-request-id", name: "request_id", type: "text", className: "input", placeholder: "Request ID" });
     body.appendChild(el("div", { style: "padding-top:0.5rem;border-top:1px solid var(--sc-border);display:flex;flex-direction:column;gap:0.625rem;" }, [
-      el("label", { className: "field-label", for: "privacy-request-id", text: "Track an Existing Request" }),
+      el("label", { className: "field-label", for: "privacy-request-id", text: "Check Existing Request Status" }),
       el("div", { style: "display:flex;gap:0.5rem;" }, [
         reqInput,
         el("button", {
           type: "button",
           className: "btn btn-secondary btn-sm",
-          text: "Check Status",
+          text: "Check Request Status",
           onClick: () => {
             if (reqInput.value.trim()) lookupRequestStatus(reqInput.value.trim());
           }

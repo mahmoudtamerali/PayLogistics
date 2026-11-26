@@ -97,6 +97,8 @@ export async function renderGovernanceView(container, ctx) {
     clear(auditPanel);
 
     const dayInput = el("input", {
+      id: "audit-date",
+      name: "day",
       type: "date",
       className: "input tabular-nums",
       "aria-label": "Audit date (UTC)",
@@ -109,6 +111,9 @@ export async function renderGovernanceView(container, ctx) {
       }
     });
     const pidInput = el("input", {
+      id: "audit-patient-id",
+      name: "patient_id",
+      "aria-label": "Filter access log by Patient ID",
       type: "search",
       className: "input",
       placeholder: "Patient ID...",
@@ -121,8 +126,8 @@ export async function renderGovernanceView(container, ctx) {
 
     auditPanel.appendChild(el("div", { className: "panel-header" }, [
       el("div", {}, [
-        el("h3", { className: "panel-title", text: "Access Audit Ledger" }),
-        el("p", { className: "panel-sub", text: "Daily clinical record access history (UTC)" })
+        el("h3", { className: "panel-title", text: "Access Activity Log" }),
+        el("p", { className: "panel-sub", text: "Daily record access history (UTC)" })
       ]),
       el("div", { className: "filter-bar" }, [dayInput, pidInput])
     ]));
@@ -186,13 +191,13 @@ export async function renderGovernanceView(container, ctx) {
 
     const body = el("div", { className: "panel-body", style: "display:flex;flex-direction:column;gap:1rem;" });
     const errBox = el("div");
-    const patientInput = el("input", { type: "text", className: "input", placeholder: "Patient ID" });
+    const patientInput = el("input", { id: "assign-patient-id", name: "patient_id", type: "text", className: "input", placeholder: "Patient ID" });
     const clinSelect = clinicians.length > 0
-      ? el("select", { className: "select" }, clinicians.map((c) => {
+      ? el("select", { id: "assign-clinician-id", name: "clinician_id", className: "select" }, clinicians.map((c) => {
           const cid = c.clinician_id || c.id;
           return el("option", { value: cid, text: c.fullName || c.name || cid });
         }))
-      : el("input", { type: "text", className: "input", placeholder: "Clinician ID" });
+      : el("input", { id: "assign-clinician-id", name: "clinician_id", type: "text", className: "input", placeholder: "Clinician ID" });
 
     const form = el("form", {
       style: "display:flex;flex-direction:column;gap:0.75rem;",
@@ -213,8 +218,8 @@ export async function renderGovernanceView(container, ctx) {
       }
     }, [
       errBox,
-      el("div", { className: "field" }, [el("label", { className: "field-label", text: "Patient ID" }), patientInput]),
-      el("div", { className: "field" }, [el("label", { className: "field-label", text: "Clinician" }), clinSelect]),
+      el("div", { className: "field" }, [el("label", { className: "field-label", for: "assign-patient-id", text: "Patient ID" }), patientInput]),
+      el("div", { className: "field" }, [el("label", { className: "field-label", for: "assign-clinician-id", text: "Clinician" }), clinSelect]),
       el("button", { type: "submit", className: "btn btn-primary btn-sm", text: "Assign Clinician" })
     ]);
 
@@ -258,14 +263,14 @@ export async function renderGovernanceView(container, ctx) {
     clear(lookupPanel);
     lookupPanel.appendChild(el("div", { className: "panel-header" }, [
       el("div", {}, [
-        el("h3", { className: "panel-title", text: "Compliance Lookups" }),
-        el("p", { className: "panel-sub", text: "Check privacy request status or operational patient details" })
+        el("h3", { className: "panel-title", text: "Patient & Request Lookup" }),
+        el("p", { className: "panel-sub", text: "Look up a patient record or privacy request by ID" })
       ])
     ]));
 
     const resultSlot = el("div");
-    const reqInput = el("input", { type: "text", className: "input", placeholder: "Privacy Request ID" });
-    const patInput = el("input", { type: "text", className: "input", placeholder: "Patient ID" });
+    const reqInput = el("input", { id: "gov-request-id", name: "request_id", "aria-label": "Privacy Request ID", type: "text", className: "input", placeholder: "Request ID" });
+    const patInput = el("input", { id: "gov-patient-id", name: "patient_id", "aria-label": "Patient ID", type: "text", className: "input", placeholder: "Patient ID" });
 
     lookupPanel.appendChild(el("div", { className: "panel-body", style: "display:flex;flex-direction:column;gap:0.875rem;" }, [
       el("div", { style: "display:flex;gap:0.5rem;" }, [
@@ -273,7 +278,7 @@ export async function renderGovernanceView(container, ctx) {
         el("button", {
           type: "button",
           className: "btn btn-secondary btn-sm",
-          text: "Check Request",
+          text: "Check Request Status",
           onClick: async () => {
             clear(resultSlot);
             if (!reqInput.value.trim()) return;

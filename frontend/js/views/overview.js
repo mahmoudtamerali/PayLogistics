@@ -7,6 +7,20 @@ function apptStatusVariant(status) {
   return "info";
 }
 
+function apptStatusLabel(status) {
+  const s = String(status || "BOOKED").toUpperCase();
+  if (s === "COMPLETED") return "Completed";
+  if (s === "CANCELLED") return "Cancelled";
+  return "Scheduled";
+}
+
+function visitTypeLabel(visitType) {
+  const v = String(visitType || "consultation").toLowerCase();
+  if (v === "follow_up") return "Follow-up";
+  if (v === "lab_visit") return "Lab Visit";
+  return "Consultation";
+}
+
 function fileStatusVariant(status) {
   const s = String(status || "").toUpperCase();
   if (s === "CLEAN") return "success";
@@ -14,12 +28,23 @@ function fileStatusVariant(status) {
   return "warn";
 }
 
-function kpiCard(label, value, sub) {
-  return el("div", { className: "kpi-card" }, [
+function fileStatusLabel(status) {
+  const s = String(status || "PENDING_SCAN").toUpperCase();
+  if (s === "CLEAN") return "Verified";
+  if (s === "QUARANTINED" || s === "INFECTED") return "Blocked";
+  return "Processing";
+}
+
+function kpiCard(label, value, sub, actionBtn = null) {
+  const children = [
     el("div", { className: "kpi-label", text: label }),
     el("div", { className: "kpi-value tabular-nums", text: value }),
     el("div", { className: "kpi-sub", text: sub })
-  ]);
+  ];
+  if (actionBtn) {
+    children.push(el("div", { style: "margin-top:0.75rem;" }, [actionBtn]));
+  }
+  return el("div", { className: "kpi-card" }, children);
 }
 
 export async function renderOverviewView(container, ctx) {
@@ -27,39 +52,79 @@ export async function renderOverviewView(container, ctx) {
   const { api, session, navigate } = ctx;
   const role = session.role;
 
-  const loading = el("div", { className: "panel panel-body", text: "Loading workspace..." });
-  container.appendChild(loading);
+  container.appendChild(el("div", { className: "panel panel-body", text: "Loading your workspace..." }));
 
-  const errors = [];
   let appointments = [];
   let files = [];
   let notes = [];
   let assignments = [];
   let auditEvents = [];
 
+  let apptLoaded = false;
+  let filesLoaded = false;
+  let notesLoaded = false;
+  let assignLoaded = false;
+  let auditLoaded = false;
+  let firstError = null;
+
+  const trackErr = (err) => {
+    if (!firstError) firstError = err.message;
+  };
+
   const tasks = [
-    api.listAppointments({ limit: 5 }).then((r) => { appointments = extractList(r.data, ["appointments"]); }).catch((e) => errors.push(e.message)),
-    api.listFiles({ limit: 5 }).then((r) => { files = extractList(r.data, ["files"]); }).catch((e) => errors.push(e.message))
+    api.listAppointments({ limit: 10 }).then((r) => {
+      appointments = extractList(r.data, ["appointments"]);
+      apptLoaded = true;
+    }).catch(trackErr),
+    api.listFiles({ limit: 10 }).then((r) => {
+      files = extractList(r.data, ["files"]);
+      filesLoaded = true;
+    }).catch(trackErr)
   ];
 
   if (role === "patient" || role === "doctor") {
-    tasks.push(api.listVisitNotes({ limit: 5 }).then((r) => { notes = extractList(r.data, ["notes", "visitNotes"]); }).catch(() => {}));
+    tasks.push(
+      api.listVisitNotes({ limit: 10 }).then((r) => {
+        notes = extractList(r.data, ["notes", "visitNotes"]);
+        notesLoaded = true;
+      }).catch(trackErr)
+    );
   }
   if (role === "doctor" || role === "admin") {
-    tasks.push(api.listAssignments().then((r) => { assignments = extractList(r.data, ["assignments"]); }).catch(() => {}));
+    tasks.push(
+      api.listAssignments().then((r) => {
+        assignments = extractList(r.data, ["assignments"]);
+        assignLoaded = true;
+      }).catch(trackErr)
+    );
   }
   if (role === "admin") {
-    tasks.push(api.searchAudit({ day: todayUtcDay(), limit: 10 }).then((r) => { auditEvents = extractList(r.data, ["events", "audit"]); }).catch(() => {}));
+    tasks.push(
+      api.searchAudit({ day: todayUtcDay(), limit: 20 }).then((r) => {
+        auditEvents = extractList(r.data, ["events", "audit"]);
+        auditLoaded = true;
+      }).catch(trackErr)
+    );
   }
 
   await Promise.all(tasks);
   clear(container);
 
-  if (errors.length > 0) {
-    container.appendChild(alertBanner(errors[0], "warn"));
+  if (firstError) {
+    const banner = alertBanner(firstError, "warn");
+    banner.appendChild(el("button", {
+      type: "button",
+      className: "btn btn-secondary btn-sm",
+      text: "Retry",
+      onClick: () => renderOverviewView(container, ctx)
+    }));
+    container.appendChild(banner);
   }
 
-  const bookedCount = appointments.filter((a) => (a.status || "BOOKED") === "BOOKED").length;
+  const upcomingBooked = appointments
+    .filter((a) => (a.status || "BOOKED") === "BOOKED")
+    .sort((a, b) => new Date(a.startsAt || a.starts_at || 0) - new Date(b.startsAt || b.starts_at || 0));
+
   const cleanCount = files.filter((f) => String(f.scanStatus || f.scan_status || f.status || "").toUpperCase() === "CLEAN").length;
   const pendingCount = files.filter((f) => {
     const st = String(f.scanStatus || f.scan_status || f.status || "").toUpperCase();
@@ -67,50 +132,86 @@ export async function renderOverviewView(container, ctx) {
   }).length;
 
   const kpiGrid = el("div", { className: "kpi-grid" });
+
   if (role === "patient") {
-    kpiGrid.appendChild(kpiCard("Booked Visits", String(bookedCount), "Upcoming scheduled consultations"));
-    kpiGrid.appendChild(kpiCard("Visit Summaries", String(notes.length), "Signed clinical encounter notes"));
-    kpiGrid.appendChild(kpiCard("Lab Documents", String(cleanCount), `${pendingCount} awaiting screening`));
-    kpiGrid.appendChild(kpiCard("Privacy Controls", "Active", "Profile, export, and erasure access"));
+    const nextAppt = upcomingBooked[0];
+    const nextVal = !apptLoaded
+      ? "—"
+      : nextAppt
+        ? formatDateTime(nextAppt.startsAt || nextAppt.starts_at)
+        : "None";
+    const nextSub = !apptLoaded
+      ? "Schedule unavailable"
+      : nextAppt
+        ? `${nextAppt.clinicianName || nextAppt.clinician_name || "Attending Physician"} · ${visitTypeLabel(nextAppt.visitType || nextAppt.visit_type)}`
+        : "No upcoming visits booked";
+
+    kpiGrid.appendChild(kpiCard("Next Appointment", nextVal, nextSub));
+    kpiGrid.appendChild(kpiCard(
+      "Upcoming Visits",
+      apptLoaded ? String(upcomingBooked.length) : "—",
+      apptLoaded ? "Confirmed appointments" : "Unavailable"
+    ));
+    kpiGrid.appendChild(kpiCard(
+      "Visit Summaries",
+      notesLoaded ? String(notes.length) : "—",
+      notesLoaded ? "Physician consultation notes" : "Unavailable"
+    ));
+    kpiGrid.appendChild(kpiCard(
+      "Lab Reports",
+      filesLoaded ? String(cleanCount) : "—",
+      !filesLoaded ? "Unavailable" : pendingCount > 0 ? `${pendingCount} processing` : "Verified diagnostic files"
+    ));
   } else if (role === "doctor") {
-    kpiGrid.appendChild(kpiCard("Assigned Patients", String(assignments.length), "Active care-team roster"));
-    kpiGrid.appendChild(kpiCard("Scheduled Visits", String(bookedCount), "Upcoming consultations"));
-    kpiGrid.appendChild(kpiCard("Encounter Notes", String(notes.length), "Recent patient visit notes"));
-    kpiGrid.appendChild(kpiCard("Lab Documents", String(cleanCount), "Verified diagnostic files"));
+    kpiGrid.appendChild(kpiCard("Assigned Patients", assignLoaded ? String(assignments.length) : "—", "Active care roster"));
+    kpiGrid.appendChild(kpiCard("Upcoming Visits", apptLoaded ? String(upcomingBooked.length) : "—", "Scheduled consultations"));
+    kpiGrid.appendChild(kpiCard("Clinical Notes", notesLoaded ? String(notes.length) : "—", "Recent encounter records"));
+    kpiGrid.appendChild(kpiCard("Verified Lab Files", filesLoaded ? String(cleanCount) : "—", "Ready for clinical review"));
   } else if (role === "staff") {
-    kpiGrid.appendChild(kpiCard("Active Bookings", String(bookedCount), "Clinic schedule queue"));
-    kpiGrid.appendChild(kpiCard("Total Appointments", String(appointments.length), "Recent operational records"));
-    kpiGrid.appendChild(kpiCard("Verified Lab Files", String(cleanCount), "Released to care teams"));
-    kpiGrid.appendChild(kpiCard("Screening Queue", String(pendingCount), "Uploads awaiting scan verdict"));
+    kpiGrid.appendChild(kpiCard("Scheduled Visits", apptLoaded ? String(upcomingBooked.length) : "—", "Active clinic queue"));
+    kpiGrid.appendChild(kpiCard("Total Visits Loaded", apptLoaded ? String(appointments.length) : "—", "Recent appointments"));
+    kpiGrid.appendChild(kpiCard("Verified Lab Files", filesLoaded ? String(cleanCount) : "—", "Cleared for care teams"));
+    kpiGrid.appendChild(kpiCard("Processing Uploads", filesLoaded ? String(pendingCount) : "—", "Awaiting verification"));
   } else {
     const deniedCount = auditEvents.filter((ev) => String(ev.outcome || "").toLowerCase() === "denied").length;
-    kpiGrid.appendChild(kpiCard("Audit Events Today", String(auditEvents.length), `UTC Date ${todayUtcDay()}`));
-    kpiGrid.appendChild(kpiCard("Denied Requests", String(deniedCount), "Access checks refused today"));
-    kpiGrid.appendChild(kpiCard("Care Assignments", String(assignments.length), "Clinician–patient pairings"));
-    kpiGrid.appendChild(kpiCard("Clinic Visits", String(appointments.length), "Recent scheduled activity"));
+    kpiGrid.appendChild(kpiCard("Activity Today", auditLoaded ? String(auditEvents.length) : "—", `UTC ${todayUtcDay()}`));
+    kpiGrid.appendChild(kpiCard("Denied Access", auditLoaded ? String(deniedCount) : "—", "Refused record requests"));
+    kpiGrid.appendChild(kpiCard("Care Assignments", assignLoaded ? String(assignments.length) : "—", "Physician–patient pairs"));
+    kpiGrid.appendChild(kpiCard("Scheduled Visits", apptLoaded ? String(upcomingBooked.length) : "—", "Upcoming clinic bookings"));
   }
+
   container.appendChild(kpiGrid);
 
   const lower = el("div", { className: "split-2" });
 
-  // Recent Appointments panel
+  // Appointments Panel
   const apptPanel = el("section", { className: "panel" }, [
     el("div", { className: "panel-header" }, [
       el("div", {}, [
-        el("h3", { className: "panel-title", text: "Recent Appointments" }),
-        el("p", { className: "panel-sub", text: "Latest scheduled visits and consultation activity" })
+        el("h3", { className: "panel-title", text: "Appointments" }),
+        el("p", { className: "panel-sub", text: "Upcoming consultations and visit history" })
       ]),
       el("button", {
         type: "button",
         className: "btn btn-secondary btn-sm",
-        text: "Manage All",
+        text: role === "patient" ? "Book or Manage" : "View All",
         onClick: () => navigate("appointments")
       })
     ])
   ]);
 
-  if (appointments.length === 0) {
-    apptPanel.appendChild(el("div", { className: "panel-body", text: "No appointments scheduled yet." }));
+  if (!apptLoaded) {
+    apptPanel.appendChild(el("div", { className: "panel-body", style: "color:var(--sc-muted);", text: "Appointments could not be loaded." }));
+  } else if (appointments.length === 0) {
+    apptPanel.appendChild(el("div", { className: "panel-body", style: "display:flex;align-items:center;justify-content:space-between;gap:1rem;" }, [
+      el("span", { style: "color:var(--sc-muted);", text: "No appointments scheduled yet." }),
+      el("button", {
+        type: "button",
+        className: "btn btn-primary btn-sm",
+        text: "Schedule a Visit",
+        onClick: () => navigate("appointments")
+      })
+    ]));
   } else {
     const tbody = el("tbody");
     for (const a of appointments.slice(0, 5)) {
@@ -118,8 +219,8 @@ export async function renderOverviewView(container, ctx) {
       tbody.appendChild(el("tr", {}, [
         el("td", { className: "tabular-nums", text: formatDateTime(a.startsAt || a.starts_at) }),
         el("td", { text: a.clinicianName || a.clinician_name || a.clinician_id || "Clinician" }),
-        el("td", { text: String(a.visitType || a.visit_type || "consultation").replace("_", " ") }),
-        el("td", {}, [statusBadge(status, apptStatusVariant(status))])
+        el("td", { text: visitTypeLabel(a.visitType || a.visit_type) }),
+        el("td", {}, [statusBadge(apptStatusLabel(status), apptStatusVariant(status))])
       ]));
     }
     apptPanel.appendChild(el("div", { className: "table-wrap" }, [
@@ -138,17 +239,17 @@ export async function renderOverviewView(container, ctx) {
   }
   lower.appendChild(apptPanel);
 
-  // Recent Lab Documents / Governance Quick Actions
+  // Secondary Panel: Lab Reports or Governance Actions
   const sidePanel = el("section", { className: "panel" }, [
     el("div", { className: "panel-header" }, [
       el("div", {}, [
-        el("h3", { className: "panel-title", text: role === "admin" ? "Governance Quick Actions" : "Recent Lab Documents" }),
-        el("p", { className: "panel-sub", text: role === "admin" ? "Daily oversight and care-team management" : "Latest uploaded diagnostic attachments" })
+        el("h3", { className: "panel-title", text: role === "admin" ? "Quick Actions" : "Diagnostic Reports" }),
+        el("p", { className: "panel-sub", text: role === "admin" ? "Daily administration and care-team tools" : "Recent laboratory and imaging uploads" })
       ]),
       el("button", {
         type: "button",
         className: "btn btn-secondary btn-sm",
-        text: role === "admin" ? "Open Ledger" : "Open Files",
+        text: role === "admin" ? "Open Ledger" : "All Files",
         onClick: () => navigate(role === "admin" ? "governance" : "files")
       })
     ])
@@ -159,24 +260,31 @@ export async function renderOverviewView(container, ctx) {
       el("button", {
         type: "button",
         className: "btn btn-primary",
-        text: "Review Today's Access Audit Ledger",
+        text: "Review Today's Access Log",
         onClick: () => navigate("governance")
       }),
       el("button", {
         type: "button",
         className: "btn btn-secondary",
-        text: "Manage Care-Team Assignments",
+        text: "Manage Care Assignments",
         onClick: () => navigate("governance")
       }),
       el("button", {
         type: "button",
         className: "btn btn-secondary",
-        text: "Inspect Clinic Schedule",
+        text: "View Clinic Schedule",
         onClick: () => navigate("appointments")
       })
     ]));
+  } else if (!filesLoaded) {
+    sidePanel.appendChild(el("div", { className: "panel-body", style: "color:var(--sc-muted);", text: "Diagnostic documents could not be loaded." }));
   } else if (files.length === 0) {
-    sidePanel.appendChild(el("div", { className: "panel-body", text: "No diagnostic files uploaded yet." }));
+    sidePanel.appendChild(el("div", { className: "panel-body", style: "display:flex;align-items:center;justify-content:space-between;gap:1rem;" }, [
+      el("span", { style: "color:var(--sc-muted);", text: "No diagnostic files uploaded yet." }),
+      ...(role === "patient" || role === "staff"
+        ? [el("button", { type: "button", className: "btn btn-secondary btn-sm", text: "Upload File", onClick: () => navigate("files") })]
+        : [])
+    ]));
   } else {
     const stack = el("div", { className: "panel-body list-stack" });
     for (const f of files.slice(0, 4)) {
@@ -188,7 +296,7 @@ export async function renderOverviewView(container, ctx) {
           el("div", { style: "font-weight:600;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;", text: f.fileName || f.file_name || "Document" }),
           el("div", { style: "font-size:0.75rem;color:var(--sc-muted);", text: f.contentType || f.content_type || "" })
         ]),
-        statusBadge(fStatus, fileStatusVariant(fStatus))
+        statusBadge(fileStatusLabel(fStatus), fileStatusVariant(fStatus))
       ]));
     }
     sidePanel.appendChild(stack);
