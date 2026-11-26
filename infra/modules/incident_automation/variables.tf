@@ -16,7 +16,7 @@ variable "alarm_name_prefix" {
 
 variable "log_retention_days" {
   type    = number
-  default = 30
+  default = 90
 }
 
 variable "tags" {
