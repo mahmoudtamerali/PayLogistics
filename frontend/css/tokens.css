@@ -1,0 +1,53 @@
+/* Nordic Sage & Ivory — Enterprise Design Tokens */
+:root {
+  --sc-bg: #FAF8F5;
+  --sc-surface: #FFFFFF;
+  --sc-surface-alt: #F4F0EA;
+  --sc-surface-hover: #EFEAE1;
+  --sc-rail-bg: #113825;
+  --sc-rail-text: #FAF8F5;
+  --sc-rail-muted: #B6CEC2;
+  --sc-rail-active: rgba(250, 248, 245, 0.14);
+  --sc-rail-border: rgba(250, 248, 245, 0.12);
+
+  --sc-border: #E6E0D6;
+  --sc-border-strong: #D2C9BA;
+
+  --sc-text: #1C1917;
+  --sc-text-secondary: #44403C;
+  --sc-muted: #6E675F;
+
+  --sc-primary: #166534;
+  --sc-primary-hover: #14532D;
+  --sc-primary-text: #FFFFFF;
+  --sc-accent-soft: #DCFCE7;
+  --sc-accent-soft-text: #14532D;
+
+  --sc-success-bg: #DCFCE7;
+  --sc-success-text: #14532D;
+  --sc-warn-bg: #FEF3C7;
+  --sc-warn-text: #92400E;
+  --sc-danger-bg: #FEE2E2;
+  --sc-danger-text: #991B1B;
+  --sc-info-bg: #E0F2FE;
+  --sc-info-text: #075985;
+  --sc-neutral-bg: #F3EFE8;
+  --sc-neutral-text: #44403C;
+
+  --sc-font-serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --sc-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --sc-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --sc-radius-sm: 6px;
+  --sc-radius-md: 10px;
+  --sc-radius-lg: 14px;
+  --sc-radius-xl: 18px;
+  --sc-radius-pill: 9999px;
+
+  --sc-shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.05);
+  --sc-shadow-md: 0 6px 20px rgba(28, 25, 23, 0.06), 0 1px 3px rgba(28, 25, 23, 0.04);
+  --sc-shadow-lg: 0 18px 42px rgba(17, 56, 37, 0.12), 0 4px 12px rgba(28, 25, 23, 0.06);
+
+  --sc-focus-ring: 0 0 0 3px rgba(22, 101, 52, 0.25);
+  --sc-max-width: 1200px;
+}

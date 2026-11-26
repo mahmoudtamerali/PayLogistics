@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none" role="img" aria-label="SecureCare Health">
+  <rect width="40" height="40" rx="10" fill="#113825"/>
+  <path d="M20 7.5L30 11.4V19.6C30 25.95 25.73 30.88 20 32.5C14.27 30.88 10 25.95 10 19.6V11.4L20 7.5Z" fill="#166534" stroke="#DCFCE7" stroke-width="1.5"/>
+  <path d="M20 14.5V24.5M15 19.5H25" stroke="#FAF8F5" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

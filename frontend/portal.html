@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clinical Portal — SecureCare Health</title>
+  <meta name="description" content="SecureCare Health authenticated portal for appointments, clinical encounter notes, diagnostic documents, and patient privacy controls." />
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/portal.css" />
+</head>
+<body>
+  <div id="portal-root">
+    <div class="auth-gate">
+      <div class="auth-gate-card">
+        <div class="brand">
+          <img class="brand-mark" src="assets/images/logo.svg" alt="" width="34" height="34" />
+          <span>
+            <span class="brand-name">SecureCare Health</span>
+            <span class="brand-sub">Clinical Portal</span>
+          </span>
+        </div>
+        <p style="margin:0;color:var(--sc-text-secondary);">Loading workspace...</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/portal.js"></script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SecureCare Health — Coordinated Clinical Care &amp; Diagnostic Portal</title>
+  <meta name="description" content="Schedule clinical visits, review physician encounter notes, receive screened laboratory reports, and manage your health data privacy in one portal." />
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/public.css" />
+</head>
+<body>
+  <header class="pub-header">
+    <div class="pub-container pub-header-inner">
+      <a class="brand" href="index.html">
+        <img class="brand-mark" src="assets/images/logo.svg" alt="" width="34" height="34" />
+        <span>
+          <span class="brand-name">SecureCare Health</span>
+          <span class="brand-sub">Clinical &amp; Diagnostic Care</span>
+        </span>
+      </a>
+
+      <nav class="pub-nav" aria-label="Primary navigation">
+        <a class="pub-nav-link" href="index.html" aria-current="page">Home</a>
+        <a class="pub-nav-link" href="about.html">About Us</a>
+        <a class="pub-nav-link" href="privacy.html">Privacy</a>
+        <a class="pub-nav-link" href="security.html">Security</a>
+        <a class="pub-nav-link" href="contact.html">Contact</a>
+      </nav>
+
+      <div class="pub-actions">
+        <button type="button" class="btn btn-secondary btn-sm" data-auth-action="signup">Create Account</button>
+        <button type="button" class="btn btn-primary btn-sm" data-auth-action="login">Sign In</button>
+      </div>
+
+      <button id="pub-menu-toggle" class="pub-menu-toggle" type="button" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="pub-mobile-drawer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="pub-mobile-drawer" class="pub-mobile-drawer">
+      <a class="pub-nav-link" href="index.html" aria-current="page">Home</a>
+      <a class="pub-nav-link" href="about.html">About Us</a>
+      <a class="pub-nav-link" href="privacy.html">Privacy</a>
+      <a class="pub-nav-link" href="security.html">Security</a>
+      <a class="pub-nav-link" href="contact.html">Contact</a>
+      <div style="display:flex;gap:0.625rem;padding-top:0.5rem;">
+        <button type="button" class="btn btn-secondary btn-sm" data-auth-action="signup">Create Account</button>
+        <button type="button" class="btn btn-primary btn-sm" data-auth-action="login">Sign In</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="pub-container hero-grid">
+        <div>
+          <h1 class="hero-title">Coordinated medical care built around trust and clarity.</h1>
+          <p class="hero-lead">
+            Schedule consultations with attending physicians, read signed visit summaries, share diagnostic laboratory reports safely, and exercise full control over your personal health records.
+          </p>
+          <div class="hero-cta-row">
+            <button type="button" class="btn btn-primary btn-lg" data-auth-action="login">Sign In to Portal</button>
+            <button type="button" class="btn btn-secondary btn-lg" data-auth-action="signup">Register as a Patient</button>
+          </div>
+
+          <div class="hero-highlights">
+            <div>
+              <div class="hero-stat-title">Direct Scheduling</div>
+              <div class="hero-stat-sub">Book consultations, follow-ups, and lab visits online</div>
+            </div>
+            <div>
+              <div class="hero-stat-title">Verified Diagnostics</div>
+              <div class="hero-stat-sub">Automated screening before clinical file release</div>
+            </div>
+            <div>
+              <div class="hero-stat-title">Strict Confidentiality</div>
+              <div class="hero-stat-sub">Clinical notes restricted strictly to care teams</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual-frame">
+          <img src="assets/images/hero-clinic-care.jpg" alt="Physician speaking with a patient inside a bright SecureCare Health consultation lounge" width="1280" height="720" />
+          <div class="hero-photo-caption">
+            <span><strong>Outpatient Care &amp; Diagnostics</strong></span>
+            <span>Sun – Thu · 08:00 – 20:00 EET</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="pub-container">
+        <div class="section-head">
+          <div class="section-kicker">Clinical Environments</div>
+          <h2 class="section-title">Designed for thoughtful consultations and seamless diagnostics.</h2>
+          <p class="section-desc">
+            Every visit connects primary care physicians, diagnostic laboratories, and clinic coordinators on one structured medical record.
+          </p>
+        </div>
+
+        <div class="grid-3">
+          <article class="dept-card">
+            <img class="dept-card-img" src="assets/images/dept-consultation.jpg" alt="Attending physician listening attentively during an outpatient consultation" width="1280" height="720" />
+            <div class="dept-card-body">
+              <h3>Physician Consultations</h3>
+              <p>Book primary consultations and follow-up visits online, then read signed encounter notes directly in your patient record.</p>
+            </div>
+          </article>
+
+          <article class="dept-card">
+            <img class="dept-card-img" src="assets/images/dept-diagnostics.jpg" alt="Modern diagnostic laboratory workstation and sample vials" width="1280" height="720" />
+            <div class="dept-card-body">
+              <h3>Diagnostic Laboratory</h3>
+              <p>Upload referrals and diagnostic reports safely—every attachment undergoes automated verification before clinical release.</p>
+            </div>
+          </article>
+
+          <article class="dept-card">
+            <img class="dept-card-img" src="assets/images/dept-cardiology.jpg" alt="Calm modern clinical examination suite in warm oak and ivory" width="1280" height="720" />
+            <div class="dept-card-body">
+              <h3>Preventive Care Suites</h3>
+              <p>Coordinated specialist follow-ups with clear care-team assignments so your attending doctors stay aligned on every step.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="pub-container">
+        <div class="grid-2" style="align-items:center;margin-bottom:3rem;">
+          <div class="editorial-photo-card">
+            <img src="assets/images/trust-privacy-care.jpg" alt="Minimalist physician desk in soft daylight symbolizing clinical discretion" width="1200" height="900" />
+          </div>
+          <div style="display:flex;flex-direction:column;gap:1rem;">
+            <div class="section-kicker">Role-Scoped Care Access</div>
+            <h2 class="section-title" style="margin-bottom:0.25rem;">Clear separation between medical care and administration.</h2>
+            <p class="section-desc">
+              Every account receives access tailored strictly to its clinical responsibility—protecting patient dignity at every touchpoint while letting you download or request erasure of your records anytime.
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:0.75rem;padding-top:0.5rem;">
+              <a class="btn btn-secondary" href="about.html">Explore Our Departments</a>
+              <a class="btn btn-ghost" href="security.html">How We Protect Records</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <article class="dept-card">
+            <img class="dept-card-img" src="assets/images/role-patient-care.jpg" alt="Patient reviewing appointments comfortably on a tablet" width="1280" height="720" />
+            <div class="dept-card-body">
+              <h3>Patients</h3>
+              <p>Schedule and manage visits, inspect your own physician summaries, upload external test reports, and control personal data export or erasure.</p>
+            </div>
+          </article>
+          <article class="dept-card">
+            <img class="dept-card-img" src="assets/images/role-physician-chart.jpg" alt="Attending physician reviewing clinical notes on a laptop" width="1280" height="720" />
+            <div class="dept-card-body">
+              <h3>Attending Physicians</h3>
+              <p>Access assigned patient charts, document structured consultation notes, track upcoming appointments, and review verified lab attachments.</p>
+            </div>
+          </article>
+          <article class="dept-card">
+            <img class="dept-card-img" src="assets/images/role-clinic-reception.jpg" alt="Clinic coordinator welcoming a visitor at a minimalist alabaster reception desk" width="1280" height="720" />
+            <div class="dept-card-body">
+              <h3>Operations &amp; Compliance</h3>
+              <p>Coordinate patient intake, manage laboratory document uploads, oversee clinician care-team assignments, and audit access history—without reading private notes.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0;">
+      <div class="pub-container">
+        <div class="cta-banner">
+          <div>
+            <h2>Ready to access your care workspace?</h2>
+            <p>Sign in with your verified account or register as a new patient to schedule your first visit.</p>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.75rem;">
+            <button type="button" class="btn btn-ivory btn-lg" data-auth-action="login">Sign In Now</button>
+            <a class="btn btn-outline-ivory btn-lg" href="privacy.html">Read Privacy Commitment</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pub-footer">
+    <div class="pub-container">
+      <div class="footer-grid">
+        <div>
+          <a class="brand" href="index.html">
+            <img class="brand-mark" src="assets/images/logo.svg" alt="" width="34" height="34" />
+            <span>
+              <span class="brand-name" style="color:#FAF8F5;">SecureCare Health</span>
+              <span class="brand-sub" style="color:#B6CEC2;">Clinical &amp; Diagnostic Care</span>
+            </span>
+          </a>
+          <p class="footer-brand-desc">
+            Patient-centered outpatient coordination, clinical encounter documentation, and secure diagnostic record sharing.
+          </p>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Organization</h4>
+          <ul class="footer-links">
+            <li><a href="about.html">About Us</a></li>
+            <li><a href="security.html">Security &amp; Trust</a></li>
+            <li><a href="contact.html">Clinic Directory</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Legal &amp; Privacy</h4>
+          <ul class="footer-links">
+            <li><a href="privacy.html">Privacy Notice</a></li>
+            <li><a href="terms.html">Terms of Use</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Portal</h4>
+          <ul class="footer-links">
+            <li><a href="portal.html">Open Clinical Portal</a></li>
+            <li><a href="contact.html">Patient Support Desk</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span>&copy; 2026 SecureCare Health. All rights reserved.</span>
+        <span>Care Support: care@outship.me · Privacy Office: privacy@outship.me</span>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="js/public.js"></script>
+</body>
+</html>
