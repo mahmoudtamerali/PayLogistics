@@ -83,7 +83,8 @@ test("static security & asset integrity across all frontend files", () => {
     for (const m of html.matchAll(/\b(?:href|src)="([^"]+)"/g)) {
       const target = m[1];
       if (target.startsWith("http") || target.startsWith("mailto:") || target.startsWith("#")) continue;
-      const resolved = path.resolve(FRONTEND_DIR, target);
+      const normalized = target === "/" ? "index.html" : target.replace(/^\//, "");
+      const resolved = path.resolve(FRONTEND_DIR, normalized);
       assert.equal(fs.existsSync(resolved), true, `${file} references missing file: ${target}`);
     }
   }

@@ -8,6 +8,11 @@ function initPublicSite() {
     return;
   }
 
+  // Keep the root URL clean in the address bar (e.g. / instead of /index.html).
+  if (window.location.pathname === "/index.html") {
+    window.history.replaceState({}, document.title, `/${window.location.search}${window.location.hash}`);
+  }
+
   const menuBtn = document.getElementById("pub-menu-toggle");
   const drawer = document.getElementById("pub-mobile-drawer");
   if (menuBtn && drawer) {

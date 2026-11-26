@@ -10,12 +10,15 @@ import {
   startSignup
 } from "./auth.js";
 import { alertBanner, clear, createIcon, el, showToast } from "./ui.js";
-import { renderAppointmentsView } from "./views/appointments.js";
-import { renderFilesView } from "./views/files.js";
-import { renderGovernanceView } from "./views/governance.js";
-import { renderNotesView } from "./views/notes.js";
-import { renderOverviewView } from "./views/overview.js";
-import { renderPrivacyView } from "./views/privacy.js";
+
+const VIEW_LOADERS = {
+  overview: () => import("./views/overview.js").then((m) => m.renderOverviewView),
+  appointments: () => import("./views/appointments.js").then((m) => m.renderAppointmentsView),
+  notes: () => import("./views/notes.js").then((m) => m.renderNotesView),
+  files: () => import("./views/files.js").then((m) => m.renderFilesView),
+  privacy: () => import("./views/privacy.js").then((m) => m.renderPrivacyView),
+  governance: () => import("./views/governance.js").then((m) => m.renderGovernanceView)
+};
 
 const ROLE_LABELS = {
   patient: "Patient Care",
@@ -52,15 +55,6 @@ const NAV_BY_ROLE = {
   ]
 };
 
-const VIEW_RENDERERS = {
-  overview: renderOverviewView,
-  appointments: renderAppointmentsView,
-  notes: renderNotesView,
-  files: renderFilesView,
-  privacy: renderPrivacyView,
-  governance: renderGovernanceView
-};
-
 let currentRoute = "overview";
 let sessionTimerId = null;
 
@@ -72,7 +66,7 @@ function renderAuthGate(root, errorMessage = "") {
   }
 
   const card = el("div", { className: "auth-gate-card" }, [
-    el("a", { className: "brand", href: "index.html" }, [
+    el("a", { className: "brand", href: "/" }, [
       el("img", { className: "brand-mark", src: "assets/images/logo.svg", alt: "", width: "34", height: "34" }),
       el("span", {}, [
         el("span", { className: "brand-name", text: "SecureCare Health" }),
@@ -107,7 +101,7 @@ function renderAuthGate(root, errorMessage = "") {
     }),
     el("a", {
       className: "btn btn-ghost",
-      href: "index.html",
+      href: "/",
       text: "Return to Homepage"
     })
   ]));
@@ -132,7 +126,7 @@ function renderUnassignedGate(root, session) {
   clear(root);
   const displayName = session.claims.name || session.claims.email || "Member";
   const card = el("div", { className: "auth-gate-card" }, [
-    el("a", { className: "brand", href: "index.html" }, [
+    el("a", { className: "brand", href: "/" }, [
       el("img", { className: "brand-mark", src: "assets/images/logo.svg", alt: "", width: "34", height: "34" }),
       el("span", {}, [
         el("span", { className: "brand-name", text: "SecureCare Health" }),
@@ -222,12 +216,13 @@ function renderPortalShell(root, session) {
     topTitle.textContent = item ? item.label : "Workspace";
     buildNav();
 
-    const renderer = VIEW_RENDERERS[currentRoute] || renderOverviewView;
+    const loader = VIEW_LOADERS[currentRoute] || VIEW_LOADERS.overview;
+    const renderer = await loader();
     await renderer(contentArea, { api, session, navigate });
   }
 
   rail.appendChild(el("div", { className: "rail-top" }, [
-    el("a", { className: "brand rail-brand", href: "index.html" }, [
+    el("a", { className: "brand rail-brand", href: "/" }, [
       el("img", { className: "brand-mark", src: "assets/images/logo.svg", alt: "", width: "34", height: "34" }),
       el("span", {}, [
         el("span", { className: "brand-name", style: "color:#FAF8F5;", text: "SecureCare" }),
@@ -264,7 +259,7 @@ function renderPortalShell(root, session) {
       el("div", {}, [topTitle, topSub])
     ]),
     el("div", { className: "portal-topbar-right" }, [
-      el("a", { className: "btn btn-ghost btn-sm", href: "index.html", text: "Clinic Home" })
+      el("a", { className: "btn btn-ghost btn-sm", href: "/", text: "Clinic Home" })
     ])
   ]);
 
