@@ -58,12 +58,14 @@ export async function renderOverviewView(container, ctx) {
   let files = [];
   let notes = [];
   let assignments = [];
+  let clinicians = [];
   let auditEvents = [];
 
   let apptLoaded = false;
   let filesLoaded = false;
   let notesLoaded = false;
   let assignLoaded = false;
+  let clinLoaded = false;
   let auditLoaded = false;
   let firstError = null;
 
@@ -71,26 +73,30 @@ export async function renderOverviewView(container, ctx) {
     if (!firstError) firstError = err.message;
   };
 
+  const apptQuery = (role === "admin" || role === "staff")
+    ? { day: todayUtcDay(), limit: 20 }
+    : { limit: 10 };
+
   const tasks = [
-    api.listAppointments({ limit: 10 }).then((r) => {
+    api.listAppointments(apptQuery).then((r) => {
       appointments = extractList(r.data, ["appointments"]);
       apptLoaded = true;
-    }).catch(trackErr),
-    api.listFiles({ limit: 10 }).then((r) => {
-      files = extractList(r.data, ["files"]);
-      filesLoaded = true;
     }).catch(trackErr)
   ];
 
-  if (role === "patient" || role === "doctor") {
+  if (role === "patient") {
     tasks.push(
+      api.listFiles({ limit: 10 }).then((r) => {
+        files = extractList(r.data, ["files"]);
+        filesLoaded = true;
+      }).catch(trackErr),
       api.listVisitNotes({ limit: 10 }).then((r) => {
         notes = extractList(r.data, ["notes", "visitNotes"]);
         notesLoaded = true;
       }).catch(trackErr)
     );
   }
-  if (role === "doctor" || role === "admin") {
+  if (role === "doctor") {
     tasks.push(
       api.listAssignments().then((r) => {
         assignments = extractList(r.data, ["assignments"]);
@@ -100,6 +106,10 @@ export async function renderOverviewView(container, ctx) {
   }
   if (role === "admin") {
     tasks.push(
+      api.listClinicians().then((r) => {
+        clinicians = extractList(r.data, ["clinicians"]);
+        clinLoaded = true;
+      }).catch(trackErr),
       api.searchAudit({ day: todayUtcDay(), limit: 20 }).then((r) => {
         auditEvents = extractList(r.data, ["events", "audit"]);
         auditLoaded = true;
@@ -165,19 +175,19 @@ export async function renderOverviewView(container, ctx) {
   } else if (role === "doctor") {
     kpiGrid.appendChild(kpiCard("Assigned Patients", assignLoaded ? String(assignments.length) : "—", "Active care roster"));
     kpiGrid.appendChild(kpiCard("Upcoming Visits", apptLoaded ? String(upcomingBooked.length) : "—", "Scheduled consultations"));
-    kpiGrid.appendChild(kpiCard("Clinical Notes", notesLoaded ? String(notes.length) : "—", "Recent encounter records"));
-    kpiGrid.appendChild(kpiCard("Verified Lab Files", filesLoaded ? String(cleanCount) : "—", "Ready for clinical review"));
+    kpiGrid.appendChild(kpiCard("Clinical Notes", "By Patient", "Search in Patient Charts"));
+    kpiGrid.appendChild(kpiCard("Lab Files", "By Patient", "Search in Lab Results"));
   } else if (role === "staff") {
-    kpiGrid.appendChild(kpiCard("Scheduled Visits", apptLoaded ? String(upcomingBooked.length) : "—", "Active clinic queue"));
-    kpiGrid.appendChild(kpiCard("Total Visits Loaded", apptLoaded ? String(appointments.length) : "—", "Recent appointments"));
-    kpiGrid.appendChild(kpiCard("Verified Lab Files", filesLoaded ? String(cleanCount) : "—", "Cleared for care teams"));
-    kpiGrid.appendChild(kpiCard("Processing Uploads", filesLoaded ? String(pendingCount) : "—", "Awaiting verification"));
+    kpiGrid.appendChild(kpiCard("Scheduled Today", apptLoaded ? String(upcomingBooked.length) : "—", `UTC ${todayUtcDay()}`));
+    kpiGrid.appendChild(kpiCard("Total Visits Today", apptLoaded ? String(appointments.length) : "—", "Daily clinic schedule"));
+    kpiGrid.appendChild(kpiCard("Lab Documents", "By Patient", "Search in Lab Intake"));
+    kpiGrid.appendChild(kpiCard("Schedule Date", todayUtcDay(), "UTC clinic date"));
   } else {
     const deniedCount = auditEvents.filter((ev) => String(ev.outcome || "").toLowerCase() === "denied").length;
     kpiGrid.appendChild(kpiCard("Activity Today", auditLoaded ? String(auditEvents.length) : "—", `UTC ${todayUtcDay()}`));
     kpiGrid.appendChild(kpiCard("Denied Access", auditLoaded ? String(deniedCount) : "—", "Refused record requests"));
-    kpiGrid.appendChild(kpiCard("Care Assignments", assignLoaded ? String(assignments.length) : "—", "Physician–patient pairs"));
-    kpiGrid.appendChild(kpiCard("Scheduled Visits", apptLoaded ? String(upcomingBooked.length) : "—", "Upcoming clinic bookings"));
+    kpiGrid.appendChild(kpiCard("Active Clinicians", clinLoaded ? String(clinicians.length) : "—", "Registered physicians"));
+    kpiGrid.appendChild(kpiCard("Visits Today", apptLoaded ? String(upcomingBooked.length) : "—", `UTC ${todayUtcDay()}`));
   }
 
   container.appendChild(kpiGrid);
@@ -208,7 +218,7 @@ export async function renderOverviewView(container, ctx) {
       el("button", {
         type: "button",
         className: "btn btn-primary btn-sm",
-        text: "Schedule a Visit",
+        text: role === "doctor" ? "Open Schedule" : "Schedule a Visit",
         onClick: () => navigate("appointments")
       })
     ]));
@@ -275,6 +285,11 @@ export async function renderOverviewView(container, ctx) {
         text: "View Clinic Schedule",
         onClick: () => navigate("appointments")
       })
+    ]));
+  } else if (role !== "patient") {
+    sidePanel.appendChild(el("div", { className: "panel-body", style: "display:flex;align-items:center;justify-content:space-between;gap:1rem;" }, [
+      el("span", { style: "color:var(--sc-muted);", text: "Enter a patient ID to browse laboratory uploads." }),
+      el("button", { type: "button", className: "btn btn-secondary btn-sm", text: "Open Lab Files", onClick: () => navigate("files") })
     ]));
   } else if (!filesLoaded) {
     sidePanel.appendChild(el("div", { className: "panel-body", style: "color:var(--sc-muted);", text: "Diagnostic documents could not be loaded." }));

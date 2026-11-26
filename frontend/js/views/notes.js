@@ -24,6 +24,7 @@ export async function renderNotesView(container, ctx) {
   let notes = [];
   let selectedNote = null;
   let nextToken = null;
+  let loadError = "";
 
   const masterDetail = el("div", { className: "split-master-detail" });
   const listCol = el("section", { className: "panel" });
@@ -46,6 +47,15 @@ export async function renderNotesView(container, ctx) {
   }
 
   async function loadNotes(append = false) {
+    if (role === "doctor" && !selectedPatientId) {
+      notes = [];
+      selectedNote = null;
+      nextToken = null;
+      loadError = "";
+      renderListColumn();
+      renderDetailColumn();
+      return;
+    }
     try {
       const res = await api.listVisitNotes({
         patient_id: role === "doctor" ? selectedPatientId : undefined,
@@ -55,14 +65,20 @@ export async function renderNotesView(container, ctx) {
       const rows = extractList(res.data, ["notes", "visitNotes"]);
       notes = append ? [...notes, ...rows] : rows;
       nextToken = extractNextToken(res.data);
+      loadError = "";
       if (!selectedNote && notes.length > 0) {
         selectedNote = notes[0];
       }
       renderListColumn();
       renderDetailColumn();
     } catch (err) {
-      clear(listCol);
-      listCol.appendChild(el("div", { className: "panel-body" }, [alertBanner(err.message, "error")]));
+      if (!append) {
+        notes = [];
+        selectedNote = null;
+        nextToken = null;
+      }
+      loadError = err.message;
+      renderListColumn();
       renderDetailColumn();
     }
   }
@@ -109,7 +125,7 @@ export async function renderNotesView(container, ctx) {
           }
         }, assignments.map((a) => {
           const pid = a.patient_id || a.patientId;
-          const label = a.patientName || a.fullName || pid;
+          const label = a.patient_name || a.patientName || a.fullName || pid;
           return el("option", { value: pid, selected: pid === selectedPatientId, text: label });
         }));
         body.appendChild(el("div", { className: "field" }, [
@@ -137,7 +153,11 @@ export async function renderNotesView(container, ctx) {
       }
     }
 
-    if (notes.length === 0) {
+    if (loadError) {
+      body.appendChild(alertBanner(loadError, "error"));
+    } else if (role === "doctor" && !selectedPatientId) {
+      body.appendChild(emptyState("Enter a Patient ID", "Enter an assigned Patient ID above to view or record consultation notes.", "notes"));
+    } else if (notes.length === 0) {
       body.appendChild(emptyState("No visit notes yet", "Consultation summaries will appear here after your appointment.", "notes"));
     } else {
       const stack = el("div", { className: "list-stack" });

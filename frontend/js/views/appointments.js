@@ -7,7 +7,8 @@ import {
   formatDateTime,
   openModal,
   showToast,
-  statusBadge
+  statusBadge,
+  todayUtcDay
 } from "../ui.js";
 
 function statusVariant(status) {
@@ -49,20 +50,23 @@ export async function renderAppointmentsView(container, ctx) {
   const { api, session } = ctx;
   const role = session.role;
   const needsPatientField = role === "staff" || role === "admin" || role === "doctor";
+  const canCreate = role === "patient" || role === "staff" || role === "admin";
+  const canCancel = role === "patient" || role === "staff" || role === "admin";
 
   let clinicians = [];
   let cliniciansLoadFailed = false;
   let appointments = [];
   let nextToken = null;
+  let listError = "";
   let filterStatus = "";
-  let filterDay = "";
+  let filterDay = (role === "staff" || role === "admin") ? todayUtcDay() : "";
   let filterPatient = "";
 
-  const layout = el("div", { className: "split-2" });
+  const layout = el("div", { className: canCreate ? "split-2" : "" });
   const listPanel = el("section", { className: "panel" });
   const formPanel = el("section", { className: "panel" });
   layout.appendChild(listPanel);
-  layout.appendChild(formPanel);
+  if (canCreate) layout.appendChild(formPanel);
   container.appendChild(layout);
 
   async function loadClinicians() {
@@ -87,6 +91,13 @@ export async function renderAppointmentsView(container, ctx) {
   }
 
   async function loadAppointments(append = false) {
+    if ((role === "staff" || role === "admin") && !filterDay && !filterPatient) {
+      appointments = [];
+      nextToken = null;
+      listError = "";
+      renderList();
+      return;
+    }
     try {
       const res = await api.listAppointments({
         status: filterStatus,
@@ -98,10 +109,15 @@ export async function renderAppointmentsView(container, ctx) {
       const rows = extractList(res.data, ["appointments"]);
       appointments = append ? [...appointments, ...rows] : rows;
       nextToken = extractNextToken(res.data);
+      listError = "";
       renderList();
     } catch (err) {
-      clear(listPanel);
-      listPanel.appendChild(el("div", { className: "panel-body" }, [alertBanner(err.message, "error")]));
+      if (!append) {
+        appointments = [];
+        nextToken = null;
+      }
+      listError = err.message;
+      renderList();
     }
   }
 
@@ -111,6 +127,7 @@ export async function renderAppointmentsView(container, ctx) {
       id: "modal-appt-starts-at",
       name: "startsAt",
       type: "datetime-local",
+      step: "1800",
       className: "input tabular-nums",
       value: toLocalInputValue(appt.startsAt || appt.starts_at)
     });
@@ -167,7 +184,7 @@ export async function renderAppointmentsView(container, ctx) {
       openModal({
         title: "Appointment Summary",
         body: [
-          el("div", { className: "field" }, [el("span", { className: "field-label", text: "Clinician" }), el("div", { text: item.clinicianName || clinicianLabel(item.clinician_id) })]),
+          el("div", { className: "field" }, [el("span", { className: "field-label", text: "Clinician" }), el("div", { text: item.clinician_name || item.clinicianName || clinicianLabel(item.clinician_id) })]),
           el("div", { className: "field" }, [el("span", { className: "field-label", text: "Scheduled Time" }), el("div", { className: "tabular-nums", text: formatDateTime(item.startsAt || item.starts_at) })]),
           el("div", { className: "field" }, [el("span", { className: "field-label", text: "Visit Type" }), el("div", { text: visitLabel(item.visitType || item.visit_type) })]),
           el("div", { className: "field" }, [el("span", { className: "field-label", text: "Status" }), statusBadge(statusLabel(item.status || "BOOKED"), statusVariant(item.status || "BOOKED"))])
@@ -205,13 +222,20 @@ export async function renderAppointmentsView(container, ctx) {
       value: filterDay,
       onChange: (e) => {
         filterDay = e.target.value;
+        if (filterDay && (role === "staff" || role === "admin")) {
+          filterPatient = "";
+        }
         loadAppointments(false);
       }
     });
 
-    const filterBar = el("div", { className: "filter-bar" }, [statusFilter, dayFilter]);
+    const filterBar = el("div", { className: "filter-bar" }, [statusFilter]);
 
-    if (role !== "patient") {
+    if (role !== "doctor") {
+      filterBar.appendChild(dayFilter);
+    }
+
+    if (role === "staff" || role === "admin") {
       const patientSearch = el("input", {
         id: "filter-appt-patient",
         name: "filter_patient",
@@ -222,6 +246,9 @@ export async function renderAppointmentsView(container, ctx) {
         value: filterPatient,
         onChange: (e) => {
           filterPatient = e.target.value.trim();
+          if (filterPatient) {
+            filterDay = "";
+          }
           loadAppointments(false);
         }
       });
@@ -235,6 +262,16 @@ export async function renderAppointmentsView(container, ctx) {
       ]),
       filterBar
     ]));
+
+    if (listError) {
+      listPanel.appendChild(el("div", { className: "panel-body" }, [alertBanner(listError, "error")]));
+      return;
+    }
+
+    if ((role === "staff" || role === "admin") && !filterDay && !filterPatient) {
+      listPanel.appendChild(emptyState("Select a date or patient", "Choose a UTC date or enter a Patient ID to view scheduled clinic visits.", "calendar"));
+      return;
+    }
 
     if (appointments.length === 0) {
       listPanel.appendChild(emptyState("No appointments found", "Adjust your filters or schedule a new appointment.", "calendar"));
@@ -262,7 +299,7 @@ export async function renderAppointmentsView(container, ctx) {
           onClick: () => openRescheduleModal(appt)
         }));
       }
-      if (status === "BOOKED") {
+      if (canCancel && status === "BOOKED") {
         actions.appendChild(el("button", {
           type: "button",
           className: "btn btn-danger btn-sm",
@@ -295,7 +332,7 @@ export async function renderAppointmentsView(container, ctx) {
 
       const cells = [
         el("td", { className: "tabular-nums", text: formatDateTime(appt.startsAt || appt.starts_at) }),
-        el("td", { text: appt.clinicianName || clinicianLabel(appt.clinician_id) })
+        el("td", { text: appt.clinician_name || appt.clinicianName || clinicianLabel(appt.clinician_id) })
       ];
       if (role !== "patient") {
         cells.push(el("td", { className: "mono", text: appt.patient_id || appt.patientId || "—" }));
@@ -380,6 +417,7 @@ export async function renderAppointmentsView(container, ctx) {
       id: "appt-starts-at",
       name: "startsAt",
       type: "datetime-local",
+      step: "1800",
       className: "input tabular-nums",
       value: toLocalInputValue(tomorrow.toISOString())
     });
@@ -396,7 +434,11 @@ export async function renderAppointmentsView(container, ctx) {
     fields.push(
       el("div", { className: "field" }, [el("label", { className: "field-label", for: "appt-clinician-id", text: "Attending Clinician" }), clinicianInput]),
       el("div", { className: "field" }, [el("label", { className: "field-label", for: "appt-visit-type", text: "Visit Type" }), visitTypeSelect]),
-      el("div", { className: "field" }, [el("label", { className: "field-label", for: "appt-starts-at", text: "Preferred Date & Time" }), dtInput]),
+      el("div", { className: "field" }, [
+        el("label", { className: "field-label", for: "appt-starts-at", text: "Preferred Date & Time" }),
+        dtInput,
+        el("div", { className: "field-hint", text: "Appointments schedule in 30-minute UTC slots (:00 or :30)." })
+      ]),
       submitBtn
     );
 
@@ -431,6 +473,6 @@ export async function renderAppointmentsView(container, ctx) {
   }
 
   await loadClinicians();
-  renderBookingForm();
+  if (canCreate) renderBookingForm();
   await loadAppointments(false);
 }

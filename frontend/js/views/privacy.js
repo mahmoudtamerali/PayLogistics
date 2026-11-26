@@ -140,8 +140,12 @@ export async function renderPrivacyView(container, ctx) {
             showToast("Data export request queued.");
             await lookupRequestStatus(rid);
           } else {
+            const rid = res.data?.request_id || res.data?.requestId || "";
             downloadJsonBlob(`securecare-health-export-${new Date().toISOString().slice(0, 10)}.json`, res.data || {});
             showToast("Health record archive downloaded.");
+            if (rid) {
+              exportStatus.appendChild(alertBanner(`Export completed. Tracking ID: ${rid}`, "info"));
+            }
           }
         } catch (err) {
           exportStatus.appendChild(alertBanner(err.message, "error"));

@@ -69,7 +69,7 @@ function humanizeError(status, payload, isJson = true) {
   const code = errObj?.code || (typeof payload?.error === "string" ? payload.error : `http_${status}`);
 
   if (status === 401) return new ApiError(status, "Your session has expired. Please sign in again.", code, requestId);
-  if (status === 403) return new ApiError(status, "You do not have permission to perform this action.", code, requestId);
+  if (status === 403) return new ApiError(status, serverMsg || "You do not have permission to perform this action.", code, requestId);
   if (status === 404) {
     if (!isJson) {
       return new ApiError(
@@ -318,8 +318,12 @@ export function createApiClient({
     exportData: (format = "json") => request("/api/export", { query: { format } }),
     submitEraseRequest: (body) =>
       request("/api/erase", { method: "POST", body: validateEraseRequest(body) }),
-    getRequestStatus: (requestId) =>
-      request(`/api/requests/${encodeURIComponent(assertId(requestId, "Request ID"))}`),
+    getRequestStatus: (requestId, patientId = "") => {
+      const pid = String(patientId || "").trim();
+      return request(`/api/requests/${encodeURIComponent(assertId(requestId, "Request ID"))}`, {
+        query: pid ? { patient_id: assertId(pid, "Patient ID") } : undefined
+      });
+    },
     searchAudit: (query = {}) => request("/api/audit", { query })
   };
 }

@@ -34,8 +34,12 @@ export async function renderGovernanceView(container, ctx) {
   let day = todayUtcDay();
   let patientFilter = "";
   let auditEvents = [];
+  let auditError = "";
   let nextToken = null;
   let assignments = [];
+  let assignFilterPatient = "";
+  let assignError = "";
+  let assignQueried = false;
   let clinicians = [];
 
   const grid = el("div", { className: "split-2" });
@@ -60,23 +64,46 @@ export async function renderGovernanceView(container, ctx) {
       const rows = extractList(res.data, ["events", "audit", "logs"]);
       auditEvents = append ? [...auditEvents, ...rows] : rows;
       nextToken = extractNextToken(res.data);
+      auditError = "";
       renderAuditPanel();
     } catch (err) {
-      clear(auditPanel);
-      auditPanel.appendChild(el("div", { className: "panel-body" }, [alertBanner(err.message, "error")]));
+      if (!append) {
+        auditEvents = [];
+        nextToken = null;
+      }
+      auditError = err.message;
+      renderAuditPanel();
     }
   }
 
-  async function loadAssignmentsAndClinicians() {
-    try {
-      const [aRes, cRes] = await Promise.all([api.listAssignments(), api.listClinicians().catch(() => ({ data: [] }))]);
-      assignments = extractList(aRes.data, ["assignments"]);
-      clinicians = extractList(cRes.data, ["clinicians"]);
+  async function loadAssignmentsOnly() {
+    if (!assignFilterPatient) {
+      assignments = [];
+      assignError = "";
+      assignQueried = false;
       renderAssignmentsPanel();
-    } catch (err) {
-      clear(assignPanel);
-      assignPanel.appendChild(el("div", { className: "panel-body" }, [alertBanner(err.message, "error")]));
+      return;
     }
+    try {
+      const res = await api.listAssignments({ patient_id: assignFilterPatient });
+      assignments = extractList(res.data, ["assignments"]);
+      assignError = "";
+      assignQueried = true;
+    } catch (err) {
+      assignments = [];
+      assignError = err.message;
+      assignQueried = true;
+    }
+    renderAssignmentsPanel();
+  }
+
+  async function loadAssignmentsAndClinicians() {
+    const [cRes] = await Promise.all([
+      api.listClinicians().catch(() => ({ data: [] })),
+      loadAssignmentsOnly()
+    ]);
+    clinicians = extractList(cRes.data, ["clinicians"]);
+    renderAssignmentsPanel();
   }
 
   function inspectEvent(ev) {
@@ -132,6 +159,11 @@ export async function renderGovernanceView(container, ctx) {
       el("div", { className: "filter-bar" }, [dayInput, pidInput])
     ]));
 
+    if (auditError) {
+      auditPanel.appendChild(el("div", { className: "panel-body" }, [alertBanner(auditError, "error")]));
+      return;
+    }
+
     if (auditEvents.length === 0) {
       auditPanel.appendChild(emptyState("No audit events on this date", "Select another UTC date or clear the patient filter.", "shield"));
       return;
@@ -140,12 +172,14 @@ export async function renderGovernanceView(container, ctx) {
     const tbody = el("tbody");
     for (const ev of auditEvents) {
       const outcome = ev.outcome || "unknown";
+      const actorId = ev.actor_id || ev.caller_id || ev.actor || "—";
+      const actorRole = ev.actor_role || ev.role || "—";
       const tr = el("tr", {
         className: "clickable",
         onClick: () => inspectEvent(ev)
       }, [
         el("td", { className: "tabular-nums", text: formatDateTime(ev.ts || ev.timestamp || ev.created_at) }),
-        el("td", { text: `${ev.caller_id || ev.actor || "—"} (${ev.role || "—"})` }),
+        el("td", { text: `${actorId} (${actorRole})` }),
         el("td", { className: "mono", text: ev.action || "—" }),
         el("td", { className: "mono", text: ev.patient_id || ev.patientId || "—" }),
         el("td", {}, [statusBadge(outcome, outcomeVariant(outcome))])
@@ -205,13 +239,15 @@ export async function renderGovernanceView(container, ctx) {
         e.preventDefault();
         clear(errBox);
         try {
+          const targetPid = patientInput.value.trim();
           await api.createAssignment({
             clinician_id: clinSelect.value,
-            patient_id: patientInput.value
+            patient_id: targetPid
           });
           patientInput.value = "";
+          assignFilterPatient = targetPid;
           showToast("Care assignment created.");
-          await loadAssignmentsAndClinicians();
+          await loadAssignmentsOnly();
         } catch (err) {
           errBox.appendChild(alertBanner(err.message, "error"));
         }
@@ -225,8 +261,36 @@ export async function renderGovernanceView(container, ctx) {
 
     body.appendChild(form);
 
-    if (assignments.length > 0) {
-      const list = el("div", { className: "list-stack", style: "padding-top:0.5rem;border-top:1px solid var(--sc-border);" });
+    const assignSearchInput = el("input", {
+      id: "gov-assign-filter-patient",
+      name: "assign_patient_id",
+      "aria-label": "Patient ID to list assignments",
+      type: "search",
+      className: "input",
+      placeholder: "Patient ID to inspect...",
+      value: assignFilterPatient
+    });
+
+    body.appendChild(el("div", { style: "padding-top:0.75rem;border-top:1px solid var(--sc-border);display:flex;flex-direction:column;gap:0.625rem;" }, [
+      el("label", { className: "field-label", for: "gov-assign-filter-patient", text: "Inspect Patient Assignments" }),
+      el("div", { style: "display:flex;gap:0.5rem;" }, [
+        assignSearchInput,
+        el("button", {
+          type: "button",
+          className: "btn btn-secondary btn-sm",
+          text: "Load",
+          onClick: () => {
+            assignFilterPatient = assignSearchInput.value.trim();
+            loadAssignmentsOnly();
+          }
+        })
+      ])
+    ]));
+
+    if (assignError) {
+      body.appendChild(alertBanner(assignError, "error"));
+    } else if (assignments.length > 0) {
+      const list = el("div", { className: "list-stack" });
       for (const a of assignments) {
         const pid = a.patient_id || a.patientId;
         const cid = a.clinician_id || a.clinicianId;
@@ -234,7 +298,7 @@ export async function renderGovernanceView(container, ctx) {
           style: "display:flex;align-items:center;justify-content:space-between;gap:0.5rem;padding:0.65rem 0.75rem;border:1px solid var(--sc-border);border-radius:var(--sc-radius-md);background:var(--sc-surface-alt);"
         }, [
           el("div", {}, [
-            el("div", { style: "font-weight:600;font-size:0.8125rem;", text: a.clinicianName || cid }),
+            el("div", { style: "font-weight:600;font-size:0.8125rem;", text: a.clinicianName || a.clinician_name || cid }),
             el("div", { className: "mono", style: "font-size:0.75rem;color:var(--sc-muted);", text: `Patient: ${pid}` })
           ]),
           el("button", {
@@ -245,7 +309,7 @@ export async function renderGovernanceView(container, ctx) {
               try {
                 await api.deleteAssignment(pid, cid);
                 showToast("Assignment removed.");
-                await loadAssignmentsAndClinicians();
+                await loadAssignmentsOnly();
               } catch (err) {
                 showToast(err.message, "error");
               }
@@ -254,6 +318,8 @@ export async function renderGovernanceView(container, ctx) {
         ]));
       }
       body.appendChild(list);
+    } else if (assignQueried) {
+      body.appendChild(el("div", { className: "field-hint", text: "No active assignments found for this Patient ID." }));
     }
 
     assignPanel.appendChild(body);
@@ -270,11 +336,13 @@ export async function renderGovernanceView(container, ctx) {
 
     const resultSlot = el("div");
     const reqInput = el("input", { id: "gov-request-id", name: "request_id", "aria-label": "Privacy Request ID", type: "text", className: "input", placeholder: "Request ID" });
+    const reqPatInput = el("input", { id: "gov-req-patient-id", name: "request_patient_id", "aria-label": "Patient ID for request lookup", type: "text", className: "input", placeholder: "Patient ID (required)" });
     const patInput = el("input", { id: "gov-patient-id", name: "patient_id", "aria-label": "Patient ID", type: "text", className: "input", placeholder: "Patient ID" });
 
     lookupPanel.appendChild(el("div", { className: "panel-body", style: "display:flex;flex-direction:column;gap:0.875rem;" }, [
-      el("div", { style: "display:flex;gap:0.5rem;" }, [
+      el("div", { style: "display:flex;flex-wrap:wrap;gap:0.5rem;" }, [
         reqInput,
+        reqPatInput,
         el("button", {
           type: "button",
           className: "btn btn-secondary btn-sm",
@@ -283,7 +351,7 @@ export async function renderGovernanceView(container, ctx) {
             clear(resultSlot);
             if (!reqInput.value.trim()) return;
             try {
-              const res = await api.getRequestStatus(reqInput.value.trim());
+              const res = await api.getRequestStatus(reqInput.value.trim(), reqPatInput.value.trim());
               resultSlot.appendChild(el("pre", {
                 className: "mono",
                 style: "margin:0;padding:0.75rem;background:var(--sc-surface-alt);border-radius:var(--sc-radius-md);overflow:auto;",

@@ -35,7 +35,7 @@ export async function renderFilesView(container, ctx) {
   clear(container);
   const { api, session } = ctx;
   const role = session.role;
-  const canUpload = role === "patient" || role === "staff";
+  const canUpload = role === "patient" || role === "doctor" || role === "staff";
   const canDownload = role !== "admin";
 
   let ownPatientId = session.claims.sub || "";
@@ -52,6 +52,7 @@ export async function renderFilesView(container, ctx) {
   let files = [];
   let nextToken = null;
   let filterPatient = "";
+  let listError = "";
 
   const stack = el("div", { style: "display:flex;flex-direction:column;gap:1.25rem;" });
   const uploadPanel = el("section", { className: "panel" });
@@ -87,7 +88,7 @@ export async function renderFilesView(container, ctx) {
       className: "input",
       placeholder: "Enter patient ID"
     });
-    if (role === "staff") {
+    if (role === "staff" || role === "doctor") {
       body.appendChild(el("div", { className: "field", style: "max-width:340px;" }, [
         el("label", { className: "field-label", for: "files-upload-patient-id", text: "Patient ID" }),
         staffPatientInput
@@ -126,7 +127,7 @@ export async function renderFilesView(container, ctx) {
       clear(statusBox);
       if (!file) return;
 
-      const targetPatient = role === "staff" ? staffPatientInput.value.trim() : ownPatientId;
+      const targetPatient = (role === "staff" || role === "doctor") ? staffPatientInput.value.trim() : ownPatientId;
       if (!targetPatient) {
         statusBox.appendChild(alertBanner("Please enter the Patient ID before uploading.", "warn"));
         return;
@@ -201,6 +202,13 @@ export async function renderFilesView(container, ctx) {
   }
 
   async function loadFiles(append = false) {
+    if (role !== "patient" && !filterPatient) {
+      files = [];
+      nextToken = null;
+      listError = "";
+      renderList();
+      return;
+    }
     try {
       const res = await api.listFiles({
         patient_id: filterPatient,
@@ -210,10 +218,15 @@ export async function renderFilesView(container, ctx) {
       const rows = extractList(res.data, ["files"]);
       files = append ? [...files, ...rows] : rows;
       nextToken = extractNextToken(res.data);
+      listError = "";
       renderList();
     } catch (err) {
-      clear(listPanel);
-      listPanel.appendChild(el("div", { className: "panel-body" }, [alertBanner(err.message, "error")]));
+      if (!append) {
+        files = [];
+        nextToken = null;
+      }
+      listError = err.message;
+      renderList();
     }
   }
 
@@ -266,6 +279,16 @@ export async function renderFilesView(container, ctx) {
       ]),
       actionsBar
     ]));
+
+    if (listError) {
+      listPanel.appendChild(el("div", { className: "panel-body" }, [alertBanner(listError, "error")]));
+      return;
+    }
+
+    if (role !== "patient" && !filterPatient) {
+      listPanel.appendChild(emptyState("Enter a Patient ID", "Diagnostic documents are scoped per patient. Enter a Patient ID above to view metadata.", "files"));
+      return;
+    }
 
     if (files.length === 0) {
       listPanel.appendChild(emptyState("No laboratory documents", "Uploaded PDF referrals and diagnostic images will appear here.", "files"));
