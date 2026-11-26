@@ -36,6 +36,12 @@ provider "aws" {
 
 data "aws_caller_identity" "current" {}
 
+# Customer-managed key already in use for the DynamoDB tables and the scanner buckets (set up
+# outside this stack). Looked up by alias so no key id/ARN is written into any file here.
+data "aws_kms_alias" "data" {
+  name = "alias/securecare-data"
+}
+
 variable "deploy" {
   description = "Create the load balancer and run the ECS services (these bill by the hour). Test sessions only."
   type        = bool
@@ -126,6 +132,8 @@ module "records" {
   xray_daemon_image     = var.xray ? "${local.registry}/securecare-xray-daemon:mirror" : ""
   inject_previous_token = var.inject_previous_token
 
+  kms_key_arn = data.aws_kms_alias.data.target_key_arn
+
   tags = local.tags
 }
 
@@ -137,8 +145,9 @@ module "scanner" {
   private_subnet_ids        = module.network.private_subnet_ids
   scanner_security_group_id = module.network.security_group_ids["scanner"]
 
-  deploy = local.deploy
-  tags   = local.tags
+  deploy      = local.deploy
+  kms_key_arn = data.aws_kms_alias.data.target_key_arn
+  tags        = local.tags
 }
 
 module "monitoring" {
