@@ -60,9 +60,9 @@ export async function renderPrivacyView(container, ctx) {
     ]));
 
     const msgSlot = el("div");
-    const nameInput = el("input", { id: "profile-full-name", name: "fullName", type: "text", className: "input", maxlength: "150", value: profileData.fullName });
-    const emailInput = el("input", { id: "profile-email", name: "email", type: "email", className: "input", maxlength: "254", value: profileData.email });
-    const phoneInput = el("input", { id: "profile-phone", name: "phone", type: "tel", className: "input tabular-nums", maxlength: "25", value: profileData.phone });
+    const nameInput = el("input", { id: "profile-full-name", name: "fullName", autocomplete: "name", type: "text", className: "input", maxlength: "150", value: profileData.fullName });
+    const emailInput = el("input", { id: "profile-email", name: "email", autocomplete: "email", type: "email", className: "input", maxlength: "254", value: profileData.email });
+    const phoneInput = el("input", { id: "profile-phone", name: "phone", autocomplete: "tel", type: "tel", className: "input tabular-nums", maxlength: "25", value: profileData.phone });
     const saveBtn = el("button", { type: "submit", className: "btn btn-primary", text: "Save Profile" });
 
     profilePanel.appendChild(el("form", {

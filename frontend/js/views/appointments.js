@@ -51,6 +51,7 @@ export async function renderAppointmentsView(container, ctx) {
   const needsPatientField = role === "staff" || role === "admin" || role === "doctor";
 
   let clinicians = [];
+  let cliniciansLoadFailed = false;
   let appointments = [];
   let nextToken = null;
   let filterStatus = "";
@@ -68,8 +69,10 @@ export async function renderAppointmentsView(container, ctx) {
     try {
       const res = await api.listClinicians();
       clinicians = extractList(res.data, ["clinicians"]);
+      cliniciansLoadFailed = false;
     } catch (_err) {
       clinicians = [];
+      cliniciansLoadFailed = true;
     }
   }
 
@@ -340,15 +343,18 @@ export async function renderAppointmentsView(container, ctx) {
       const retryBtn = el("button", {
         type: "button",
         className: "btn btn-secondary btn-sm",
-        text: "Retry",
+        text: cliniciansLoadFailed ? "Retry" : "Refresh",
         onClick: async () => {
           retryBtn.disabled = true;
           await loadClinicians();
           renderBookingForm();
         }
       });
+      const msg = cliniciansLoadFailed
+        ? "Clinician availability could not be loaded. Please try again in a moment."
+        : "No clinicians are currently available for booking. Please check back later or contact care@outship.me.";
       formPanel.appendChild(el("div", { className: "panel-body", style: "display:flex;flex-direction:column;gap:0.875rem;" }, [
-        alertBanner("Clinician availability could not be loaded. Please try again in a moment.", "warn"),
+        alertBanner(msg, cliniciansLoadFailed ? "warn" : "info"),
         el("div", {}, [retryBtn])
       ]));
       return;

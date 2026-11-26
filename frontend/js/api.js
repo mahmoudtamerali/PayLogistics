@@ -31,24 +31,41 @@ export function buildQueryString(params = {}) {
   return str ? `?${str}` : "";
 }
 
+function unwrapEnvelope(data) {
+  if (
+    data &&
+    typeof data === "object" &&
+    !Array.isArray(data) &&
+    typeof data.success === "boolean" &&
+    data.data !== undefined &&
+    data.data !== null &&
+    typeof data.data === "object"
+  ) {
+    return data.data;
+  }
+  return data;
+}
+
 export function extractList(data, candidateKeys = []) {
-  if (Array.isArray(data)) return data;
-  if (!data || typeof data !== "object") return [];
+  const unwrapped = unwrapEnvelope(data);
+  if (Array.isArray(unwrapped)) return unwrapped;
+  if (!unwrapped || typeof unwrapped !== "object") return [];
   for (const key of [...candidateKeys, "items", "records", "data", "results"]) {
-    if (Array.isArray(data[key])) return data[key];
+    if (Array.isArray(unwrapped[key])) return unwrapped[key];
   }
   return [];
 }
 
 export function extractNextToken(data) {
-  if (!data || typeof data !== "object") return null;
-  return data.nextToken || data.next_token || null;
+  const unwrapped = unwrapEnvelope(data);
+  if (!unwrapped || typeof unwrapped !== "object") return null;
+  return unwrapped.nextToken || unwrapped.next_token || null;
 }
 
 function humanizeError(status, payload, isJson = true) {
   const errObj = payload?.error && typeof payload.error === "object" ? payload.error : null;
   const serverMsg = errObj?.message || (typeof payload?.error === "string" ? payload.error : null) || payload?.message || payload?.detail;
-  const requestId = errObj?.requestId || payload?.requestId || null;
+  const requestId = errObj?.requestId || errObj?.request_id || payload?.requestId || payload?.request_id || null;
   const code = errObj?.code || (typeof payload?.error === "string" ? payload.error : `http_${status}`);
 
   if (status === 401) return new ApiError(status, "Your session has expired. Please sign in again.", code, requestId);
@@ -241,7 +258,7 @@ export function createApiClient({
       throw humanizeError(resp.status, payload, isJson);
     }
 
-    return { status: resp.status, data: payload };
+    return { status: resp.status, data: unwrapEnvelope(payload), meta: payload };
   }
 
   return {
