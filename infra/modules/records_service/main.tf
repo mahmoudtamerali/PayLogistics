@@ -11,6 +11,29 @@ locals {
     assignments = { name = local.assignments_table, hash = "clinician_id", range = "patient_id" }
   }
 
+  # GSIs per table, keyed the same way as local.tables. Both attributes of ByPatient
+  # (patient_id, clinician_id) are already declared as the assignments table's own hash/range.
+  # ByDay's hash (day) is new; its range (event_id) is already the audit table's own range key.
+  table_gsis = {
+    notes = []
+    audit = [
+      { name = "ByDay", hash = "day", range = "event_id" }
+    ]
+    assignments = [
+      { name = "ByPatient", hash = "patient_id", range = "clinician_id" }
+    ]
+  }
+
+  # Attribute names any table's GSIs need beyond that table's own hash/range key
+  # (those are already declared below). Avoids declaring the same attribute twice.
+  extra_gsi_attributes = {
+    for key, gsis in local.table_gsis :
+    key => setsubtract(
+      toset(flatten([for g in gsis : [g.hash, g.range]])),
+      [local.tables[key].hash, local.tables[key].range]
+    )
+  }
+
   # X-Ray (T62): a daemon container next to the service, reached on localhost (awsvpc shares it). Non-essential:
   # if it stops, the service keeps running and only tracing is lost. Same hardening as the other container.
   xray_environment = var.xray_enabled ? {
@@ -75,6 +98,24 @@ resource "aws_dynamodb_table" "this" {
   attribute {
     name = each.value.range
     type = "S"
+  }
+
+  dynamic "attribute" {
+    for_each = local.extra_gsi_attributes[each.key]
+    content {
+      name = attribute.value
+      type = "S"
+    }
+  }
+
+  dynamic "global_secondary_index" {
+    for_each = local.table_gsis[each.key]
+    content {
+      name            = global_secondary_index.value.name
+      hash_key        = global_secondary_index.value.hash
+      range_key       = global_secondary_index.value.range
+      projection_type = "ALL"
+    }
   }
 
   point_in_time_recovery {
@@ -168,15 +209,21 @@ data "aws_iam_policy_document" "task" {
   }
 
   statement {
-    sid       = "AuditWriteOnly"
-    actions   = ["dynamodb:PutItem"]
-    resources = [aws_dynamodb_table.this["audit"].arn]
+    sid     = "AuditWriteOnly"
+    actions = ["dynamodb:PutItem"]
+    resources = [
+      aws_dynamodb_table.this["audit"].arn,
+      "${aws_dynamodb_table.this["audit"].arn}/index/*",
+    ]
   }
 
   statement {
-    sid       = "AssignmentsReadOnly"
-    actions   = ["dynamodb:GetItem"]
-    resources = [aws_dynamodb_table.this["assignments"].arn]
+    sid     = "AssignmentsReadOnly"
+    actions = ["dynamodb:GetItem"]
+    resources = [
+      aws_dynamodb_table.this["assignments"].arn,
+      "${aws_dynamodb_table.this["assignments"].arn}/index/*",
+    ]
   }
 
   # /health/ready calls DescribeTable on all three tables.
