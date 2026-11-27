@@ -1,0 +1,1743 @@
+openapi: "3.0.1"
+info:
+  title: "securecare-api"
+  description: "SecureCare authenticated healthcare API. API Gateway Cognito authorizer\
+    \ validates identity using the securecare-cognito User Pool authorizer; use a\
+    \ Cognito ID token in Authorization with no OAuth scopes. Cognito groups are patient,\
+    \ doctor, staff, and admin. Fine-grained RBAC, patient ownership, assignment checks,\
+    \ field-level rules, and PHI policy remain enforced inside each Lambda; request\
+    \ values never grant access. This Regional REST API in eu-west-1 defines 22 business\
+    \ methods and unauthenticated mock OPTIONS methods. Export/erasure requests persist\
+    \ tracking records; 202 is valid only when asynchronous SQS processing is deployed.\
+    \ Cross-origin CORS is configured for https://outship.me. To use a frontend subdomain\
+    \ such as https://app.outship.me, replace the allowed origin consistently in every\
+    \ OPTIONS mock response and DEFAULT_4XX/DEFAULT_5XX gateway response, and configure\
+    \ the matching API Gateway custom domain/base-path mapping and TLS certificate\
+    \ plus the CloudFront origin/behavior as applicable. If CloudFront serves both\
+    \ the frontend and /api/* from the same origin, remove cross-origin CORS headers;\
+    \ keep OPTIONS only if required by routing. Lambda proxy handlers must return\
+    \ matching Access-Control-Allow-Origin and Vary: Origin headers for cross-origin\
+    \ responses."
+  version: "4.0.0"
+servers:
+- url: "https://h3e3y51de3.execute-api.eu-west-1.amazonaws.com/{basePath}"
+  variables:
+    basePath:
+      default: "dev"
+paths:
+  /api/visit-notes/{patient_id}/{note_id}:
+    get:
+      operationId: "get_visit-notes_api_visit-notes_patient_id_note_id"
+      parameters:
+      - name: "patient_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "note_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+        "404":
+          description: "404 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-visit-notes/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      parameters:
+      - name: "patient_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "note_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /api/assignments/{patient_id}:
+    delete:
+      operationId: "delete_assignments_api_assignments_patient_id"
+      parameters:
+      - name: "patient_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "clinician_id"
+        in: "query"
+        schema:
+          type: "string"
+      responses:
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "204":
+          description: "204 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+        "404":
+          description: "404 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-assignments/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      parameters:
+      - name: "patient_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /api/visit-notes/{patient_id}:
+    post:
+      operationId: "post_visit-notes_api_visit-notes_patient_id"
+      parameters:
+      - name: "patient_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVisitNote"
+        required: true
+      responses:
+        "201":
+          description: "201 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+        "404":
+          description: "404 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-visit-notes/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      parameters:
+      - name: "patient_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /api/patients/me:
+    get:
+      operationId: "get_patients_api_patients_me"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-patients/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+    patch:
+      operationId: "patch_patients_api_patients_me"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePatientProfile"
+        required: true
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-patients/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+  /api/audit:
+    get:
+      operationId: "get_audit_api_audit"
+      parameters:
+      - name: "limit"
+        in: "query"
+        schema:
+          type: "string"
+      - name: "nextToken"
+        in: "query"
+        schema:
+          type: "string"
+      - name: "day"
+        in: "query"
+        schema:
+          type: "string"
+      - name: "patient_id"
+        in: "query"
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-audit/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /api/visit-notes:
+    get:
+      operationId: "get_visit-notes_api_visit-notes"
+      parameters:
+      - name: "patient_id"
+        in: "query"
+        schema:
+          type: "string"
+      - name: "limit"
+        in: "query"
+        schema:
+          type: "string"
+      - name: "nextToken"
+        in: "query"
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-visit-notes/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /api/files/{fileId}/download-url:
+    get:
+      operationId: "get_files_api_files_fileId_download-url"
+      parameters:
+      - name: "fileId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+        "404":
+          description: "404 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+        "409":
+          description: "409 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-files/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      parameters:
+      - name: "fileId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /api/requests/{request_id}:
+    get:
+      operationId: "get_export_api_requests_request_id"
+      parameters:
+      - name: "request_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+        "404":
+          description: "404 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-export/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      parameters:
+      - name: "request_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /api/files/upload-url:
+    post:
+      operationId: "post_files_api_files_upload-url"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestUpload"
+        required: true
+      responses:
+        "201":
+          description: "201 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-files/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /api/files:
+    get:
+      operationId: "get_files_api_files"
+      parameters:
+      - name: "patient_id"
+        in: "query"
+        schema:
+          type: "string"
+      - name: "limit"
+        in: "query"
+        schema:
+          type: "string"
+      - name: "nextToken"
+        in: "query"
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-files/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /api/assignments:
+    get:
+      operationId: "get_assignments_api_assignments"
+      parameters:
+      - name: "patient_id"
+        in: "query"
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-assignments/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    post:
+      operationId: "post_assignments_api_assignments"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssignment"
+        required: true
+      responses:
+        "201":
+          description: "201 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-assignments/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /api/appointments/{appointment_id}:
+    get:
+      operationId: "get_appointments_api_appointments_appointment_id"
+      parameters:
+      - name: "appointment_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+        "404":
+          description: "404 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-appointments/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    delete:
+      operationId: "delete_appointments_api_appointments_appointment_id"
+      parameters:
+      - name: "appointment_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+        "404":
+          description: "404 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-appointments/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      parameters:
+      - name: "appointment_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+    patch:
+      operationId: "patch_appointments_api_appointments_appointment_id"
+      parameters:
+      - name: "appointment_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAppointment"
+        required: true
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+        "404":
+          description: "404 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+        "409":
+          description: "409 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-appointments/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+  /api/export:
+    get:
+      operationId: "get_export_api_export"
+      parameters:
+      - name: "format"
+        in: "query"
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "202":
+          description: "202 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-export/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /api/clinicians:
+    get:
+      operationId: "get_appointments_api_clinicians"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-appointments/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /api/erase:
+    post:
+      operationId: "post_erase_api_erase"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EraseRequest"
+        required: true
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "202":
+          description: "202 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-erase/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /api/appointments:
+    get:
+      operationId: "get_appointments_api_appointments"
+      parameters:
+      - name: "status"
+        in: "query"
+        schema:
+          type: "string"
+      - name: "limit"
+        in: "query"
+        schema:
+          type: "string"
+      - name: "nextToken"
+        in: "query"
+        schema:
+          type: "string"
+      - name: "day"
+        in: "query"
+        schema:
+          type: "string"
+      - name: "patient_id"
+        in: "query"
+        schema:
+          type: "string"
+      - name: "clinician_id"
+        in: "query"
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-appointments/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    post:
+      operationId: "post_appointments_api_appointments"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAppointment"
+        required: true
+      responses:
+        "201":
+          description: "201 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+        "409":
+          description: "409 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-appointments/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /api/patients/{patient_id}:
+    get:
+      operationId: "get_patients_api_patients_patient_id"
+      parameters:
+      - name: "patient_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          content: {}
+        "400":
+          description: "400 response"
+          content: {}
+        "401":
+          description: "401 response"
+          content: {}
+        "500":
+          description: "500 response"
+          content: {}
+        "403":
+          description: "403 response"
+          content: {}
+        "404":
+          description: "404 response"
+          content: {}
+        "429":
+          description: "429 response"
+          content: {}
+      security:
+      - securecare-cognito: []
+      x-amazon-apigateway-request-validator: "validate-body-and-params"
+      x-amazon-apigateway-integration:
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:199329817097:function:securecare-patients/invocations"
+        httpMethod: "POST"
+        passthroughBehavior: "when_no_match"
+        responseTransferMode: "BUFFERED"
+        type: "aws_proxy"
+    options:
+      parameters:
+      - name: "patient_id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "200 response"
+          headers:
+            Cache-Control:
+              schema:
+                type: "string"
+            Access-Control-Allow-Origin:
+              schema:
+                type: "string"
+            Access-Control-Allow-Methods:
+              schema:
+                type: "string"
+            Vary:
+              schema:
+                type: "string"
+            Access-Control-Allow-Headers:
+              schema:
+                type: "string"
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Cache-Control: "'no-store'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+              method.response.header.Access-Control-Allow-Origin: "'https://outship.me'"
+              method.response.header.Vary: "'Origin'"
+        requestTemplates:
+          application/json: "{\"statusCode\":200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+components:
+  schemas:
+    EraseRequest:
+      title: "EraseRequest"
+      required:
+      - "confirm"
+      - "reason"
+      type: "object"
+      properties:
+        confirm:
+          type: "boolean"
+        reason:
+          maxLength: 500
+          minLength: 5
+          type: "string"
+    RequestUpload:
+      title: "RequestUpload"
+      required:
+      - "contentType"
+      - "fileName"
+      - "patient_id"
+      - "sizeBytes"
+      type: "object"
+      properties:
+        patient_id:
+          maxLength: 128
+          minLength: 1
+          type: "string"
+        fileName:
+          maxLength: 100
+          minLength: 1
+          type: "string"
+        contentType:
+          type: "string"
+          enum:
+          - "application/pdf"
+          - "image/png"
+          - "image/jpeg"
+        sizeBytes:
+          maximum: 1.048576E+7
+          minimum: 1.0
+          type: "integer"
+    CreateAssignment:
+      title: "CreateAssignment"
+      required:
+      - "clinician_id"
+      - "patient_id"
+      type: "object"
+      properties:
+        clinician_id:
+          maxLength: 128
+          minLength: 1
+          type: "string"
+        patient_id:
+          maxLength: 128
+          minLength: 1
+          type: "string"
+    UpdatePatientProfile:
+      title: "UpdatePatientProfile"
+      type: "object"
+      properties:
+        fullName:
+          maxLength: 150
+          minLength: 1
+          type: "string"
+        email:
+          maxLength: 254
+          minLength: 3
+          type: "string"
+        phone:
+          maxLength: 25
+          minLength: 7
+          type: "string"
+    CreateVisitNote:
+      title: "CreateVisitNote"
+      required:
+      - "note"
+      - "title"
+      type: "object"
+      properties:
+        title:
+          maxLength: 120
+          minLength: 1
+          type: "string"
+        note:
+          maxLength: 5000
+          minLength: 1
+          type: "string"
+    CreateAppointment:
+      title: "CreateAppointment"
+      required:
+      - "clinician_id"
+      - "startsAt"
+      - "visitType"
+      type: "object"
+      properties:
+        patient_id:
+          maxLength: 128
+          minLength: 1
+          type: "string"
+        clinician_id:
+          maxLength: 128
+          minLength: 1
+          type: "string"
+        startsAt:
+          maxLength: 35
+          minLength: 20
+          type: "string"
+        visitType:
+          type: "string"
+          enum:
+          - "consultation"
+          - "follow_up"
+          - "lab_visit"
+    UpdateAppointment:
+      title: "UpdateAppointment"
+      type: "object"
+      properties:
+        startsAt:
+          maxLength: 35
+          minLength: 20
+          type: "string"
+        visitType:
+          type: "string"
+          enum:
+          - "consultation"
+          - "follow_up"
+          - "lab_visit"
+        status:
+          type: "string"
+          enum:
+          - "BOOKED"
+          - "CANCELLED"
+          - "COMPLETED"
+  securitySchemes:
+    securecare-cognito:
+      type: "apiKey"
+      name: "Authorization"
+      in: "header"
+      x-amazon-apigateway-authtype: "cognito_user_pools"
+      x-amazon-apigateway-authorizer:
+        providerARNs:
+        - "arn:aws:cognito-idp:eu-west-1:199329817097:userpool/eu-west-1_S51fCYW5c"
+        type: "cognito_user_pools"
+x-amazon-apigateway-security-policy: "TLS_1_0"
+x-amazon-apigateway-gateway-responses:
+  DEFAULT_4XX:
+    responseParameters:
+      gatewayresponse.header.Vary: "'Origin'"
+      gatewayresponse.header.Cache-Control: "'no-store'"
+      gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+      gatewayresponse.header.Access-Control-Allow-Origin: "'https://outship.me'"
+      gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+    responseTemplates:
+      application/json: "{\"error\":{\"code\":\"$context.error.responseType\",\"message\"\
+        :\"$util.escapeJavaScript($context.error.messageString)\",\"requestId\":\"\
+        $context.requestId\"}}"
+  DEFAULT_5XX:
+    responseParameters:
+      gatewayresponse.header.Vary: "'Origin'"
+      gatewayresponse.header.Cache-Control: "'no-store'"
+      gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PATCH,DELETE,OPTIONS'"
+      gatewayresponse.header.Access-Control-Allow-Origin: "'https://outship.me'"
+      gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+    responseTemplates:
+      application/json: "{\"error\":{\"code\":\"$context.error.responseType\",\"message\"\
+        :\"$util.escapeJavaScript($context.error.messageString)\",\"requestId\":\"\
+        $context.requestId\"}}"
+x-amazon-apigateway-request-validators:
+  validate-body-and-params:
+    validateRequestParameters: true
+    validateRequestBody: true
