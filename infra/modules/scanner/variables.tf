@@ -27,14 +27,14 @@ variable "scanner_security_group_id" {
 }
 
 variable "cpu" {
-  description = "ClamAV needs room: 2048 (2 vCPU) with 4096 MiB is the starting point. Unverified until the first real run."
+  description = "ClamAV runtime sizing: 512 (0.5 vCPU) with 2048 MiB verified on AWS (~1.0 GB steady-state RAM, <1% idle CPU)."
   type        = number
-  default     = 2048
+  default     = 512
 }
 
 variable "memory" {
   type    = number
-  default = 4096
+  default = 2048
 }
 
 variable "max_bytes" {
@@ -57,7 +57,13 @@ variable "desired_count" {
 variable "cors_allowed_origins" {
   description = "Website origins allowed to upload with a pre-signed URL (the CloudFront domain). Empty = no CORS rule."
   type        = list(string)
-  default     = []
+  default     = ["https://outship.me"]
+}
+
+variable "files_verdict_lambda_arn" {
+  description = "Optional ARN of the securecare-files Lambda to notify on ObjectCreated events in clean/quarantine buckets."
+  type        = string
+  default     = null
 }
 
 variable "quarantine_retention_days" {

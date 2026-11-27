@@ -145,9 +145,11 @@ module "scanner" {
   private_subnet_ids        = module.network.private_subnet_ids
   scanner_security_group_id = module.network.security_group_ids["scanner"]
 
-  deploy      = local.deploy
-  kms_key_arn = data.aws_kms_alias.data.target_key_arn
-  tags        = local.tags
+  deploy                   = local.deploy
+  kms_key_arn              = data.aws_kms_alias.data.target_key_arn
+  cors_allowed_origins     = ["https://outship.me"]
+  files_verdict_lambda_arn = "arn:aws:lambda:eu-west-1:${data.aws_caller_identity.current.account_id}:function:securecare-files"
+  tags                     = local.tags
 }
 
 module "monitoring" {

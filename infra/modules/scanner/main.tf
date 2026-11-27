@@ -183,6 +183,31 @@ resource "aws_s3_bucket_notification" "uploads" {
   depends_on = [aws_sqs_queue_policy.scan]
 }
 
+resource "aws_lambda_permission" "verdict_from_s3" {
+  for_each = var.files_verdict_lambda_arn == null ? toset([]) : toset(["clean", "quarantine"])
+
+  statement_id   = "AllowS3${title(each.key)}BucketInvoke"
+  action         = "lambda:InvokeFunction"
+  function_name  = var.files_verdict_lambda_arn
+  principal      = "s3.amazonaws.com"
+  source_account = local.account_id
+  source_arn     = aws_s3_bucket.this[each.key].arn
+}
+
+resource "aws_s3_bucket_notification" "verdicts" {
+  for_each = var.files_verdict_lambda_arn == null ? toset([]) : toset(["clean", "quarantine"])
+
+  bucket = aws_s3_bucket.this[each.key].id
+
+  lambda_function {
+    id                  = "securecare-verdict-to-lambda"
+    lambda_function_arn = var.files_verdict_lambda_arn
+    events              = ["s3:ObjectCreated:*"]
+  }
+
+  depends_on = [aws_lambda_permission.verdict_from_s3]
+}
+
 # ---------------------------------------------------------------- logs and IAM
 resource "aws_cloudwatch_log_group" "scanner" {
   name              = "/${var.name}/scanner"
